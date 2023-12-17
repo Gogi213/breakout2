@@ -16,7 +16,7 @@ def add_percentage_annotations(fig, df, pairs):
                            showarrow=True,
                            arrowhead=1)
 
-def plot_support_resistance_with_annotations(df, valid_pairs):
+def plot_support_resistance_with_annotations(df, valid_pairs, symbol):
     fig = go.Figure(data=[go.Candlestick(x=df.index,
                                          open=df['Open'],
                                          high=df['High'],
@@ -33,8 +33,8 @@ def plot_support_resistance_with_annotations(df, valid_pairs):
     add_percentage_annotations(fig, df, valid_pairs)
 
     fig.update_layout(
+        title=symbol,  # Добавляем название тикера как заголовок графика
         autosize=True,
-        height=700,  # Вы можете изменить это значение, чтобы подогнать под размер экрана
         margin=dict(l=50, r=50, b=100, t=100, pad=4)
     )
 

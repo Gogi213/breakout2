@@ -86,7 +86,7 @@ def update_graph(*args):
     calculate_volume_oscillator(df)
     pairs = find_pairs(pivot_highs)
     valid_pairs = validate_setup(df, pairs)
-    return plot.plot_support_resistance_with_annotations(df, valid_pairs)
+    return plot.plot_support_resistance_with_annotations(df, valid_pairs, symbol)
 
 # Запуск приложения
 if __name__ == '__main__':
