@@ -1,5 +1,5 @@
 import pandas as pd
-from binance_api import get_historical_futures_data
+from binance_api import get_top_futures_pairs, get_historical_futures_data
 import plot
 
 # Функции для расчета точек разворота
@@ -62,14 +62,16 @@ def validate_setup(df, pairs):
 
 # Основной код
 def main():
-    symbol = 'btcusdt'  # Замените на ваш торговый символ
-    df = get_historical_futures_data(symbol)
+    # Получаем список топовых валютных пар
+    symbols = get_top_futures_pairs(limit=10)  # Установите нужное количество пар
 
-    pivot_highs = find_pivot_high(df, left_bars=10, right_bars=10)
-    calculate_volume_oscillator(df)
-    pairs = find_pairs(pivot_highs)
-    valid_pairs = validate_setup(df, pairs)
-    plot.plot_support_resistance_with_annotations(df, valid_pairs)
+    for symbol in symbols:
+        df = get_historical_futures_data(symbol)
+        pivot_highs = find_pivot_high(df, left_bars=10, right_bars=10)
+        calculate_volume_oscillator(df)
+        pairs = find_pairs(pivot_highs)
+        valid_pairs = validate_setup(df, pairs)
+        plot.plot_support_resistance_with_annotations(df, valid_pairs)
 
 if __name__ == "__main__":
     main()

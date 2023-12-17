@@ -33,4 +33,3 @@ def plot_support_resistance_with_annotations(df, valid_pairs):
 
     config = {'scrollZoom': True, 'displayModeBar': True, 'editable': True}
     fig.show(config=config)
-
