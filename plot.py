@@ -31,7 +31,11 @@ def plot_support_resistance_with_annotations(df, valid_pairs):
 
     add_percentage_annotations(fig, df, valid_pairs)
 
-    # Эта строка была удалена, так как теперь график будет отображаться в Dash
-    # fig.show(config=config)
+    # Настройка стиля графика
+    fig.update_layout(
+        autosize=True,
+        height=700,  # Вы можете изменить это значение, чтобы подогнать под размер экрана
+        margin=dict(l=50, r=50, b=100, t=100, pad=4)
+    )
 
-    return fig  # Возвращаем объект графика для использования в Dash
+    return fig
