@@ -1,4 +1,5 @@
 import plotly.graph_objects as go
+from dash import html, dcc
 
 def add_percentage_annotations(fig, df, pairs):
     for pair in pairs:
@@ -31,7 +32,6 @@ def plot_support_resistance_with_annotations(df, valid_pairs):
 
     add_percentage_annotations(fig, df, valid_pairs)
 
-    # Настройка стиля графика
     fig.update_layout(
         autosize=True,
         height=700,  # Вы можете изменить это значение, чтобы подогнать под размер экрана
@@ -39,3 +39,14 @@ def plot_support_resistance_with_annotations(df, valid_pairs):
     )
 
     return fig
+
+def create_layout_with_graph_and_list(symbols, selected_symbol):
+    graph = dcc.Graph(id='currency-pair-graph')
+    symbol_list = html.Ul([html.Li(symbol, id=symbol, style={'cursor': 'pointer'}) for symbol in symbols])
+
+    layout = html.Div([
+        html.Div(graph, style={'width': '90%', 'display': 'inline-block'}),
+        html.Div(symbol_list, style={'width': '10%', 'display': 'inline-block', 'vertical-align': 'top'})
+    ], style={'display': 'flex'})
+
+    return layout

@@ -66,24 +66,22 @@ app = dash.Dash(__name__)
 symbols = get_top_futures_pairs(limit=20)
 
 # Определяем макет приложения
-app.layout = html.Div([
-    # Выпадающий список для выбора валютной пары
-    dcc.Dropdown(
-        id='currency-pair-dropdown',
-        options=[{'label': symbol, 'value': symbol} for symbol in symbols],
-        value=symbols[0]
-    ),
-    # График, который будет обновляться в зависимости от выбранной пары
-    dcc.Graph(id='currency-pair-graph')
-])
+app.layout = plot.create_layout_with_graph_and_list(symbols, symbols[0])
 
 # Колбэк для обновления графика при выборе валютной пары
 @app.callback(
     Output('currency-pair-graph', 'figure'),
-    [Input('currency-pair-dropdown', 'value')]
+    [Input(symbol, 'n_clicks') for symbol in symbols]
 )
-def update_graph(selected_currency_pair):
-    df = get_historical_futures_data(selected_currency_pair)
+def update_graph(*args):
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        symbol = symbols[0]
+    else:
+        symbol = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    df = get_historical_futures_data(symbol)
     pivot_highs = find_pivot_high(df, left_bars=10, right_bars=10)
     calculate_volume_oscillator(df)
     pairs = find_pairs(pivot_highs)
