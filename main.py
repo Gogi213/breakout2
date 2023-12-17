@@ -13,6 +13,15 @@ def find_pivot_high(df, left_bars, right_bars):
             highs.append((df.index[i], None))
     return highs
 
+def find_pivot_low(df, left_bars, right_bars):
+    lows = []
+    for i in range(left_bars, len(df) - right_bars):
+        if df['Low'][i] == min(df['Low'][i-left_bars:i+right_bars+1]):
+            lows.append((df.index[i], df['Low'][i]))
+        else:
+            lows.append((df.index[i], None))
+    return lows
+
 # Функция для расчета осциллятора объема
 def calculate_volume_oscillator(df):
     short_ema = df['Volume'].ewm(span=5, adjust=False).mean()
@@ -30,6 +39,18 @@ def find_pairs(pivot_highs, threshold=0.0015):
                     if price_diff <= threshold:
                         pairs.append((pivot_highs[i], pivot_highs[j]))
     return pairs
+
+def find_low_pairs(pivot_lows, threshold=0.0015):
+    pairs = []
+    for i in range(len(pivot_lows)):
+        for j in range(i+1, len(pivot_lows)):
+            if pivot_lows[i][1] and pivot_lows[j][1]:
+                if pivot_lows[j][0] > pivot_lows[i][0]:
+                    price_diff = abs(pivot_lows[j][1] - pivot_lows[i][1]) / pivot_lows[i][1]
+                    if price_diff <= threshold:
+                        pairs.append((pivot_lows[i], pivot_lows[j]))
+    return pairs
+
 
 # Функция для проверки валидности сетапа
 def validate_setup(df, pairs):
@@ -59,6 +80,34 @@ def validate_setup(df, pairs):
 
     return valid_pairs
 
+def validate_low_setup(df, pairs):
+    valid_pairs = []
+    for pair in pairs:
+        is_valid = True
+        start_idx = df.index.get_loc(pair[0][0])
+        end_idx = df.index.get_loc(pair[1][0])
+
+        # Цена дна
+        bottom_price = pair[0][1]
+        # Цена теста
+        test_price = pair[1][1]
+
+        # Проверяем, что цена теста не ниже и не равна цене дна
+        if test_price < bottom_price:
+            is_valid = False
+
+        # Проверяем, что свечи между тестами и дном не ниже дна
+        for i in range(start_idx + 1, end_idx):
+            if df['Low'][i] < bottom_price:
+                is_valid = False
+                break
+
+        if is_valid:
+            valid_pairs.append(pair)
+
+    return valid_pairs
+
+
 # Создаем Dash-приложение
 app = dash.Dash(__name__)
 
@@ -82,11 +131,17 @@ def update_graph(*args):
         symbol = ctx.triggered[0]['prop_id'].split('.')[0]
 
     df = get_historical_futures_data(symbol)
+
+    # Анализ верхних точек разворота
     pivot_highs = find_pivot_high(df, left_bars=10, right_bars=10)
-    calculate_volume_oscillator(df)
-    pairs = find_pairs(pivot_highs)
-    valid_pairs = validate_setup(df, pairs)
-    return plot.plot_support_resistance_with_annotations(df, valid_pairs, symbol)
+    valid_high_pairs = validate_setup(df, find_pairs(pivot_highs))
+
+    # Анализ нижних точек разворота
+    pivot_lows = find_pivot_low(df, left_bars=10, right_bars=10)
+    valid_low_pairs = validate_low_setup(df, find_low_pairs(pivot_lows))
+
+    # Обновление графика с учетом обоих наборов данных
+    return plot.plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pairs, symbol)
 
 # Запуск приложения
 if __name__ == '__main__':

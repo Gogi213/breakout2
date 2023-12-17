@@ -16,21 +16,30 @@ def add_percentage_annotations(fig, df, pairs):
                            showarrow=True,
                            arrowhead=1)
 
-def plot_support_resistance_with_annotations(df, valid_pairs, symbol):
+def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pairs, symbol):
     fig = go.Figure(data=[go.Candlestick(x=df.index,
                                          open=df['Open'],
                                          high=df['High'],
                                          low=df['Low'],
                                          close=df['Close'])])
 
-    for pair in valid_pairs:
+    # Добавление линий и аннотаций для верхних пар
+    for pair in valid_high_pairs:
         for idx, price in pair:
             end_idx = min(len(df.index) - 1, df.index.get_loc(idx) + 15)
             fig.add_shape(type="line",
                           x0=idx, y0=price, x1=df.index[end_idx], y1=price,
                           line=dict(color="Black", width=1))
 
-    add_percentage_annotations(fig, df, valid_pairs)
+    # Добавление линий и аннотаций для нижних пар
+    for pair in valid_low_pairs:
+        for idx, price in pair:
+            end_idx = min(len(df.index) - 1, df.index.get_loc(idx) + 15)
+            fig.add_shape(type="line",
+                          x0=idx, y0=price, x1=df.index[end_idx], y1=price,
+                          line=dict(color="Blue", width=1))  # Используйте другой цвет для нижних пар
+
+    add_percentage_annotations(fig, df, valid_high_pairs + valid_low_pairs)
 
     fig.update_layout(
         title=symbol,  # Добавляем название тикера как заголовок графика
