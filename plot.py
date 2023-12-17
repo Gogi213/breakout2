@@ -31,5 +31,7 @@ def plot_support_resistance_with_annotations(df, valid_pairs):
 
     add_percentage_annotations(fig, df, valid_pairs)
 
-    config = {'scrollZoom': True, 'displayModeBar': True, 'editable': True}
-    fig.show(config=config)
+    # Эта строка была удалена, так как теперь график будет отображаться в Dash
+    # fig.show(config=config)
+
+    return fig  # Возвращаем объект графика для использования в Dash

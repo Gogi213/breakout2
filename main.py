@@ -1,4 +1,5 @@
-import pandas as pd
+import dash
+from dash import html, dcc, Input, Output
 from binance_api import get_top_futures_pairs, get_historical_futures_data
 import plot
 
@@ -31,7 +32,6 @@ def find_pairs(pivot_highs, threshold=0.0015):
     return pairs
 
 # Функция для проверки валидности сетапа
-# Функция для проверки валидности сетапа
 def validate_setup(df, pairs):
     valid_pairs = []
     for pair in pairs:
@@ -59,20 +59,37 @@ def validate_setup(df, pairs):
 
     return valid_pairs
 
+# Создаем Dash-приложение
+app = dash.Dash(__name__)
 
-# Основной код
-def main():
-    # Получаем список топовых валютных пар
-    symbols = get_top_futures_pairs(limit=10)  # Установите нужное количество пар
+# Получаем список валютных пар
+symbols = get_top_futures_pairs(limit=20)
 
-    for symbol in symbols:
-        df = get_historical_futures_data(symbol)
-        pivot_highs = find_pivot_high(df, left_bars=10, right_bars=10)
-        calculate_volume_oscillator(df)
-        pairs = find_pairs(pivot_highs)
-        valid_pairs = validate_setup(df, pairs)
-        plot.plot_support_resistance_with_annotations(df, valid_pairs)
+# Определяем макет приложения
+app.layout = html.Div([
+    # Выпадающий список для выбора валютной пары
+    dcc.Dropdown(
+        id='currency-pair-dropdown',
+        options=[{'label': symbol, 'value': symbol} for symbol in symbols],
+        value=symbols[0]
+    ),
+    # График, который будет обновляться в зависимости от выбранной пары
+    dcc.Graph(id='currency-pair-graph')
+])
 
-if __name__ == "__main__":
-    main()
-#123123123
+# Колбэк для обновления графика при выборе валютной пары
+@app.callback(
+    Output('currency-pair-graph', 'figure'),
+    [Input('currency-pair-dropdown', 'value')]
+)
+def update_graph(selected_currency_pair):
+    df = get_historical_futures_data(selected_currency_pair)
+    pivot_highs = find_pivot_high(df, left_bars=10, right_bars=10)
+    calculate_volume_oscillator(df)
+    pairs = find_pairs(pivot_highs)
+    valid_pairs = validate_setup(df, pairs)
+    return plot.plot_support_resistance_with_annotations(df, valid_pairs)
+
+# Запуск приложения
+if __name__ == '__main__':
+    app.run_server(debug=True)
