@@ -41,12 +41,12 @@ def plot_support_resistance_with_annotations(df, valid_pairs, symbol):
     return fig
 
 def create_layout_with_graph_and_list(symbols, selected_symbol):
-    graph = dcc.Graph(id='currency-pair-graph')
+    graph = dcc.Graph(id='currency-pair-graph', style={'height': '100vh'})  # Задаем высоту графика
     symbol_list = html.Ul([html.Li(symbol, id=symbol, style={'cursor': 'pointer'}) for symbol in symbols])
 
     layout = html.Div([
         html.Div(graph, style={'width': '90%', 'display': 'inline-block'}),
         html.Div(symbol_list, style={'width': '10%', 'display': 'inline-block', 'vertical-align': 'top'})
-    ], style={'display': 'flex'})
+    ], style={'display': 'flex', 'height': '100vh'})  # Задаем высоту контейнера
 
     return layout
