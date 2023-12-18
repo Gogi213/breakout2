@@ -16,6 +16,21 @@ def get_top_futures_pairs(base_currency='USDT', limit=20):
     pairs.sort(key=lambda x: float(x['quoteVolume']), reverse=True)
     return [pair['symbol'] for pair in pairs[:limit]]
 
+def calculate_natr(df, period=14):
+    high_low = df['High'] - df['Low']
+    high_close = (df['High'] - df['Close'].shift()).abs()
+    low_close = (df['Low'] - df['Close'].shift()).abs()
+
+    ranges = pd.concat([high_low, high_close, low_close], axis=1)
+    true_range = ranges.max(axis=1)
+    atr = true_range.rolling(window=period).mean()
+
+    # Нормализация ATR (преобразование в nATR)
+    natr = (atr / df['Close']) * 100
+
+    return natr
+
+
 def get_historical_futures_data(symbol, interval='15m', limit=1500):
     cached_data = cache_manager.load_cache(symbol, interval)
     if cached_data is not None:
@@ -39,6 +54,9 @@ def get_historical_futures_data(symbol, interval='15m', limit=1500):
     numeric_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
     for col in numeric_columns:
         df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    # Расчет и добавление ATR
+    df['nATR'] = calculate_natr(df)
 
     cache_manager.save_cache(df, symbol, interval)
     return df
