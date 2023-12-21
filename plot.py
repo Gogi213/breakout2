@@ -23,21 +23,36 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
                                          low=df['Low'],
                                          close=df['Close'])])
 
-    # Добавление линий и аннотаций для верхних пар
-    for pair in valid_high_pairs:
-        for idx, price in pair:
-            end_idx = min(len(df.index) - 1, df.index.get_loc(idx) + 15)
-            fig.add_shape(type="line",
-                          x0=idx, y0=price, x1=df.index[end_idx], y1=price,
-                          line=dict(color="Black", width=1))
+    # Словарь для хранения номеров сетапов по каждой свече
+    setups_per_candle = {}
 
-    # Добавление линий и аннотаций для нижних пар
-    for pair in valid_low_pairs:
-        for idx, price in pair:
-            end_idx = min(len(df.index) - 1, df.index.get_loc(idx) + 15)
-            fig.add_shape(type="line",
-                          x0=idx, y0=price, x1=df.index[end_idx], y1=price,
-                          line=dict(color="Blue", width=1))  # Используйте другой цвет для нижних пар
+    # Нумерация вершин и тестов
+    setup_number = 1
+    for pairs in [valid_high_pairs, valid_low_pairs]:
+        for pair in pairs:
+            for idx, _ in pair:
+                if idx not in setups_per_candle:
+                    setups_per_candle[idx] = []
+                setups_per_candle[idx].append(str(setup_number))
+            setup_number += 1
+
+    # Создание аннотаций
+    for idx, setup_numbers in setups_per_candle.items():
+        price = df.at[idx, 'High'] if idx in df.index else None
+        if price is not None:
+            fig.add_annotation(x=idx, y=price,
+                               text='/'.join(setup_numbers),
+                               showarrow=False,
+                               yshift=10)
+
+    # Добавление линий и аннотаций для верхних и нижних пар
+    for pairs, color in [(valid_high_pairs, "Black"), (valid_low_pairs, "Blue")]:
+        for pair in pairs:
+            for idx, price in pair:
+                end_idx = min(len(df.index) - 1, df.index.get_loc(idx) + 15)
+                fig.add_shape(type="line",
+                              x0=idx, y0=price, x1=df.index[end_idx], y1=price,
+                              line=dict(color=color, width=1))
 
     add_percentage_annotations(fig, df, valid_high_pairs + valid_low_pairs)
 
