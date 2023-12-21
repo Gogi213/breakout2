@@ -1,4 +1,5 @@
 # analysis.py
+import pandas as pd
 
 # Функции для расчета точек разворота
 def find_pivot_high(df, left_bars, right_bars):
@@ -20,27 +21,43 @@ def find_pivot_low(df, left_bars, right_bars):
     return lows
 
 # Функция для поиска пар точек
-def find_pairs(pivot_highs, threshold=0.0015):
+# analysis.py
+
+def find_pairs(pivot_highs, df):
     pairs = []
     for i in range(len(pivot_highs)):
-        for j in range(i+1, len(pivot_highs)):
-            if pivot_highs[i][1] and pivot_highs[j][1]:
-                if pivot_highs[j][0] > pivot_highs[i][0]:
-                    price_diff = abs(pivot_highs[j][1] - pivot_highs[i][1]) / pivot_highs[i][1]
-                    if price_diff <= threshold:
-                        pairs.append((pivot_highs[i], pivot_highs[j]))
+        high_idx, high_price = pivot_highs[i]
+        if high_price is not None:
+            current_nATR = df.at[high_idx, 'nATR']
+            if pd.notna(current_nATR):
+                threshold = current_nATR / 2
+                for j in range(i+1, len(pivot_highs)):
+                    _, next_high_price = pivot_highs[j]
+                    if next_high_price is not None:
+                        price_diff = abs(next_high_price - high_price) / high_price
+                        if pd.notna(price_diff) and price_diff <= threshold:
+                            pairs.append((pivot_highs[i], pivot_highs[j]))
     return pairs
 
-def find_low_pairs(pivot_lows, threshold=0.0015):
+
+def find_low_pairs(pivot_lows, df):
     pairs = []
     for i in range(len(pivot_lows)):
-        for j in range(i+1, len(pivot_lows)):
-            if pivot_lows[i][1] and pivot_lows[j][1]:
-                if pivot_lows[j][0] > pivot_lows[i][0]:
-                    price_diff = abs(pivot_lows[j][1] - pivot_lows[i][1]) / pivot_lows[i][1]
-                    if price_diff <= threshold:
-                        pairs.append((pivot_lows[i], pivot_lows[j]))
+        low_idx, low_price = pivot_lows[i]
+        if low_price is not None:
+            # Убедимся, что nATR является числом
+            current_nATR = df.at[low_idx, 'nATR']
+            if pd.notna(current_nATR):
+                threshold = current_nATR / 2
+                for j in range(i+1, len(pivot_lows)):
+                    _, next_low_price = pivot_lows[j]
+                    if next_low_price is not None:
+                        price_diff = abs(next_low_price - low_price) / low_price
+                        # Убедимся, что price_diff является числом
+                        if pd.notna(price_diff) and price_diff <= threshold:
+                            pairs.append((pivot_lows[i], pivot_lows[j]))
     return pairs
+
 
 # Функция для проверки валидности сетапа
 def validate_setup(df, pairs):
