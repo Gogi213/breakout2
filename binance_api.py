@@ -30,7 +30,6 @@ def calculate_natr(df, period=14):
 
     return natr
 
-
 def get_historical_futures_data(symbol, interval='15m', limit=1500):
     cached_data = cache_manager.load_cache(symbol, interval)
     if cached_data is not None:
@@ -55,7 +54,7 @@ def get_historical_futures_data(symbol, interval='15m', limit=1500):
     for col in numeric_columns:
         df[col] = pd.to_numeric(df[col], errors='coerce')
 
-    # Расчет и добавление ATR
+    # Расчет и добавление nATR
     df['nATR'] = calculate_natr(df)
 
     cache_manager.save_cache(df, symbol, interval)
@@ -65,3 +64,5 @@ def preload_data():
     top_pairs = get_top_futures_pairs()
     for pair in top_pairs:
         get_historical_futures_data(pair)
+
+# Дополнительные функции и логика (если необходимо)
