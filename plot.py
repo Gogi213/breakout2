@@ -54,7 +54,7 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
                               x0=idx, y0=price, x1=df.index[end_idx], y1=price,
                               line=dict(color=color, width=1))
 
-    add_percentage_annotations(fig, df, valid_high_pairs + valid_low_pairs)
+    # add_percentage_annotations(fig, df, valid_high_pairs + valid_low_pairs)
 
     fig.update_layout(
         title=symbol,  # Добавляем название тикера как заголовок графика
