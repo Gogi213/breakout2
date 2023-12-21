@@ -26,7 +26,7 @@ def calculate_natr(df, period=14):
     atr = true_range.rolling(window=period).mean()
 
     # Нормализация ATR (преобразование в nATR)
-    natr = (atr / df['Close']) * 100
+    natr = (atr / df['Close'])
 
     return natr
 
