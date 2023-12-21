@@ -113,3 +113,45 @@ def validate_low_setup(df, pairs):
             valid_pairs.append(pair)
 
     return valid_pairs
+
+def validate_breakout_setups(df, valid_high_pairs, nATR_column='nATR'):
+    successful_breakouts = 0
+    unsuccessful_breakouts = 0
+    sum_nATR_successful = 0
+    sum_nATR_unsuccessful = 0
+
+    for pair in valid_high_pairs:
+        peak_idx, peak_price = pair[0]
+        test_idx, test_price = pair[1]
+
+        # Исключаем открытые сетапы
+        if test_idx >= len(df) - 1:
+            continue
+
+        # Находим свечу, которая пробивает уровень верхнего сетапа
+        breakout_candle_idx = df.index.get_loc(test_idx) + 1
+        breakout_candle = df.iloc[breakout_candle_idx]
+
+        # Условия для оценки пробоя
+        nATR_value = df.at[test_idx, nATR_column]
+        upper_bound = test_price + nATR_value
+        lower_bound = test_price - nATR_value / 2
+
+        if breakout_candle['High'] >= upper_bound:
+            # Успешный пробой
+            successful_breakouts += 1
+            sum_nATR_successful += nATR_value
+        elif test_price < breakout_candle['High'] < upper_bound or breakout_candle['Low'] <= lower_bound:
+            # Неуспешный пробой
+            unsuccessful_breakouts += 1
+            sum_nATR_unsuccessful += nATR_value / 2
+
+    breakout_stats = {
+        'successful_breakouts': successful_breakouts,
+        'unsuccessful_breakouts': unsuccessful_breakouts,
+        'success_rate': successful_breakouts / (successful_breakouts + unsuccessful_breakouts) if successful_breakouts + unsuccessful_breakouts > 0 else 0,
+        'sum_nATR_successful': sum_nATR_successful,
+        'sum_nATR_unsuccessful': sum_nATR_unsuccessful
+    }
+
+    return breakout_stats

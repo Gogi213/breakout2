@@ -2,7 +2,10 @@ import dash
 from dash import html, dcc, Input, Output
 from binance_api import get_top_futures_pairs, get_historical_futures_data
 import plot
-from analysis import find_pivot_high, find_pivot_low, find_pairs, find_low_pairs, validate_setup, validate_low_setup
+from analysis import (
+    find_pivot_high, find_pivot_low, find_pairs, find_low_pairs,
+    validate_setup, validate_low_setup, validate_breakout_setups
+)
 
 # Создаем Dash-приложение
 app = dash.Dash(__name__)
@@ -32,6 +35,11 @@ def update_graph(*args):
     valid_high_pairs = validate_setup(df, find_pairs(pivot_highs, df))
     pivot_lows = find_pivot_low(df, left_bars=10, right_bars=10)
     valid_low_pairs = validate_low_setup(df, find_low_pairs(pivot_lows, df))
+
+    # Валидация пробойных сетапов
+    breakout_stats = validate_breakout_setups(df, valid_high_pairs)
+
+    # Здесь вы можете использовать breakout_stats для дальнейшего анализа или визуализации
 
     # Обновление графика с учетом обоих наборов данных
     return plot.plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pairs, symbol)
