@@ -114,10 +114,10 @@ def validate_low_setup(df, pairs):
 
     return valid_pairs
 
-def find_breakout_candles(df, valid_high_pairs):
+def find_breakout_candles(df, pairs, is_high=True):
     breakout_candles = []
 
-    for pair in valid_high_pairs:
+    for pair in pairs:
         peak_idx, peak_price = pair[0]
         test_idx, test_price = pair[1]
 
@@ -128,9 +128,16 @@ def find_breakout_candles(df, valid_high_pairs):
         # Перебираем свечи после теста для поиска пробоя
         for i in range(test_idx + 1, len(df)):
             candle = df.iloc[i]
-            if candle['Low'] <= test_price and candle['High'] >= test_price:
-                # Нашли свечу, пересекающую уровень нижнего теста снизу вверх
-                breakout_candles.append((pair, i))
-                break
+            if is_high:
+                # Для верхних сетапов: пробой снизу вверх
+                if candle['Low'] <= test_price and candle['High'] >= test_price:
+                    breakout_candles.append((pair, i))
+                    break
+            else:
+                # Для нижних сетапов: пробой сверху вниз
+                if candle['High'] >= test_price and candle['Low'] <= test_price:
+                    breakout_candles.append((pair, i))
+                    break
 
     return breakout_candles
+

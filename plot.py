@@ -29,22 +29,22 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
 
     # Нумерация вершин и тестов
     setup_number = 1
-    for pairs in [valid_high_pairs, valid_low_pairs]:
+    for pairs, is_high in [(valid_high_pairs, True), (valid_low_pairs, False)]:
         for pair in pairs:
             for idx, _ in pair:
                 if idx not in setups_per_candle:
-                    setups_per_candle[idx] = {'numbers': [], 'is_high': True}
+                    setups_per_candle[idx] = {'numbers': [], 'is_high': is_high}
                 setups_per_candle[idx]['numbers'].append(str(setup_number))
             setup_number += 1
 
-    # Находим и аннотируем свечи пробоя
-    breakout_candles = find_breakout_candles(df, valid_high_pairs)
-    for pair, breakout_idx in breakout_candles:
-        # Используем номер сетапа вершины/теста для свечи пробоя
-        peak_idx = pair[0][0]
-        if peak_idx in setups_per_candle:
-            setup_number = setups_per_candle[peak_idx]['numbers'][0]
-            setups_per_candle[breakout_idx] = {'numbers': [setup_number], 'is_high': False}
+    # Находим и аннотируем свечи пробоя для верхних и нижних сетапов
+    for pairs, is_high in [(valid_high_pairs, True), (valid_low_pairs, False)]:
+        breakout_candles = find_breakout_candles(df, pairs, is_high)
+        for pair, breakout_idx in breakout_candles:
+            peak_idx = pair[0][0]
+            if peak_idx in setups_per_candle:
+                setup_number = setups_per_candle[peak_idx]['numbers'][0]
+                setups_per_candle[breakout_idx] = {'numbers': [setup_number], 'is_high': is_high}
 
     # Создание аннотаций
     for idx, setup_info in setups_per_candle.items():
