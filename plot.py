@@ -85,3 +85,25 @@ def create_layout_with_graph_and_list(symbols, selected_symbol):
     ], style={'display': 'flex', 'height': '100vh'})
 
     return layout
+
+def create_statistics_table(results):
+    # Подсчёт статистики
+    total_breakouts = len(results)
+    successful_breakouts = sum(1 for r in results if r[1] == 'Successful')
+    unsuccessful_breakouts = total_breakouts - successful_breakouts
+    win_rate = successful_breakouts / total_breakouts if total_breakouts > 0 else 0
+    sum_nATR_successful = sum(r[2] for r in results if r[1] == 'Successful')
+    sum_nATR_unsuccessful = sum(r[2] for r in results if r[1] == 'Unsuccessful')
+
+    # Создание таблицы
+    table_data = [
+        ['Количество пробоев', 'Успешные', 'Неуспешные', 'Винрейт', 'Сумма nATR успешных', 'Сумма nATR/2 неуспешных'],
+        [total_breakouts, successful_breakouts, unsuccessful_breakouts, f"{win_rate:.2%}", sum_nATR_successful, sum_nATR_unsuccessful]
+    ]
+
+    table = go.Figure(data=[go.Table(
+        header=dict(values=table_data[0]),
+        cells=dict(values=table_data[1])
+    )])
+
+    return table
