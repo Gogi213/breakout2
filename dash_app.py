@@ -1,8 +1,8 @@
-import dash
 from dash import html, dcc, Input, Output
+import dash
 from binance_api import get_top_futures_pairs, get_historical_futures_data
 import plot
-from analysis import find_pivot_high, find_pivot_low, find_pairs, find_low_pairs, validate_setup, validate_low_setup
+from analysis import find_pivot_high, find_pivot_low, find_pairs, find_low_pairs, validate_setup, validate_low_setup, find_breakout_candles, emulate_position_tracking
 
 # Создаем Dash-приложение
 app = dash.Dash(__name__)
@@ -11,14 +11,18 @@ app = dash.Dash(__name__)
 symbols = get_top_futures_pairs(limit=30)
 
 # Определяем макет приложения
-app.layout = plot.create_layout_with_graph_and_list(symbols, symbols[0])
+app.layout = html.Div([
+    plot.create_layout_with_graph_and_list(symbols, symbols[0]),
+    html.Div(id='breakout-statistics-table')
+])
 
-# Колбэк для обновления графика при выборе валютной пары
+# Колбэк для обновления графика и таблицы при выборе валютной пары
 @app.callback(
-    Output('currency-pair-graph', 'figure'),
+    [Output('currency-pair-graph', 'figure'),
+     Output('breakout-statistics-table', 'children')],
     [Input(symbol, 'n_clicks') for symbol in symbols]
 )
-def update_graph(*args):
+def update_graph_and_table(*args):
     ctx = dash.callback_context
 
     if not ctx.triggered:
@@ -29,9 +33,15 @@ def update_graph(*args):
     df = get_historical_futures_data(symbol)
 
     pivot_highs = find_pivot_high(df, left_bars=15, right_bars=15)
-    valid_high_pairs = validate_setup(df, find_pairs(pivot_highs, df))
+    valid_high_pairs = validate_setup(df, find_pairs(pivot_highs, df))  # Добавлен аргумент df
     pivot_lows = find_pivot_low(df, left_bars=15, right_bars=15)
-    valid_low_pairs = validate_low_setup(df, find_low_pairs(pivot_lows, df))
+    valid_low_pairs = validate_low_setup(df, find_low_pairs(pivot_lows, df))  # Добавлен аргумент df
 
-    # Обновление графика с учетом обоих наборов данных
-    return plot.plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pairs, symbol)
+    # Создание графика
+    graph = plot.plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pairs, symbol)
+
+    # Создание таблицы статистики
+    breakout_candles = find_breakout_candles(df, valid_high_pairs + valid_low_pairs)
+    statistics_table = plot.create_breakout_statistics_table(df, breakout_candles)
+
+    return graph, statistics_table
