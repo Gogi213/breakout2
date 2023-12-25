@@ -63,54 +63,34 @@ def find_low_pairs(pivot_lows, df):
 def validate_setup(df, pairs):
     valid_pairs = []
     for pair in pairs:
-        is_valid = True
         start_idx = df.index.get_loc(pair[0][0])
         end_idx = df.index.get_loc(pair[1][0])
 
-        # Цена вершины
-        peak_price = pair[0][1]
-        # Цена теста
-        test_price = pair[1][1]
+        # Проверяем, что вершина и тест не на одной свече и расстояние между ними >= 15
+        if start_idx != end_idx and end_idx - start_idx >= 15:
+            peak_price = pair[0][1]
+            test_price = pair[1][1]
 
-        # Проверяем, что цена теста не выше и не равна цене вершины
-        if test_price > peak_price:
-            is_valid = False
-
-        # Проверяем, что свечи между тестами и вершиной не выше вершины
-        for i in range(start_idx + 1, end_idx):
-            if df['High'][i] > peak_price:
-                is_valid = False
-                break
-
-        if is_valid:
-            valid_pairs.append(pair)
+            # Дополнительные проверки
+            if test_price <= peak_price and all(df['High'][i] <= peak_price for i in range(start_idx + 1, end_idx)):
+                valid_pairs.append(pair)
 
     return valid_pairs
 
 def validate_low_setup(df, pairs):
     valid_pairs = []
     for pair in pairs:
-        is_valid = True
         start_idx = df.index.get_loc(pair[0][0])
         end_idx = df.index.get_loc(pair[1][0])
 
-        # Цена дна
-        bottom_price = pair[0][1]
-        # Цена теста
-        test_price = pair[1][1]
+        # Проверяем, что дно и тест не на одной свече и расстояние между ними >= 15
+        if start_idx != end_idx and end_idx - start_idx >= 15:
+            bottom_price = pair[0][1]
+            test_price = pair[1][1]
 
-        # Проверяем, что цена теста не ниже и не равна цене дна
-        if test_price < bottom_price:
-            is_valid = False
-
-        # Проверяем, что свечи между тестами и дном не ниже дна
-        for i in range(start_idx + 1, end_idx):
-            if df['Low'][i] < bottom_price:
-                is_valid = False
-                break
-
-        if is_valid:
-            valid_pairs.append(pair)
+            # Дополнительные проверки
+            if test_price >= bottom_price and all(df['Low'][i] >= bottom_price for i in range(start_idx + 1, end_idx)):
+                valid_pairs.append(pair)
 
     return valid_pairs
 
