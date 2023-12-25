@@ -8,7 +8,7 @@ from analysis import find_pivot_high, find_pivot_low, find_pairs, find_low_pairs
 app = dash.Dash(__name__)
 
 # Получаем список валютных пар
-symbols = get_top_futures_pairs(limit=20)
+symbols = get_top_futures_pairs(limit=30)
 
 # Определяем макет приложения
 app.layout = plot.create_layout_with_graph_and_list(symbols, symbols[0])
@@ -28,9 +28,9 @@ def update_graph(*args):
 
     df = get_historical_futures_data(symbol)
 
-    pivot_highs = find_pivot_high(df, left_bars=10, right_bars=10)
+    pivot_highs = find_pivot_high(df, left_bars=15, right_bars=15)
     valid_high_pairs = validate_setup(df, find_pairs(pivot_highs, df))
-    pivot_lows = find_pivot_low(df, left_bars=10, right_bars=10)
+    pivot_lows = find_pivot_low(df, left_bars=15, right_bars=15)
     valid_low_pairs = validate_low_setup(df, find_low_pairs(pivot_lows, df))
 
     # Обновление графика с учетом обоих наборов данных

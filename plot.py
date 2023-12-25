@@ -1,5 +1,6 @@
 import plotly.graph_objects as go
 from dash import html, dcc
+from analysis import find_breakout_candles
 
 def add_percentage_annotations(fig, df, pairs):
     for pair in pairs:
@@ -32,18 +33,27 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
         for pair in pairs:
             for idx, _ in pair:
                 if idx not in setups_per_candle:
-                    setups_per_candle[idx] = []
-                setups_per_candle[idx].append(str(setup_number))
+                    setups_per_candle[idx] = {'numbers': [], 'is_high': True}
+                setups_per_candle[idx]['numbers'].append(str(setup_number))
             setup_number += 1
 
+    # Находим и аннотируем свечи пробоя
+    breakout_candles = find_breakout_candles(df, valid_high_pairs)
+    for pair, breakout_idx in breakout_candles:
+        # Используем номер сетапа вершины/теста для свечи пробоя
+        peak_idx = pair[0][0]
+        if peak_idx in setups_per_candle:
+            setup_number = setups_per_candle[peak_idx]['numbers'][0]
+            setups_per_candle[breakout_idx] = {'numbers': [setup_number], 'is_high': False}
+
     # Создание аннотаций
-    for idx, setup_numbers in setups_per_candle.items():
-        price = df.at[idx, 'High'] if idx in df.index else None
+    for idx, setup_info in setups_per_candle.items():
+        price = df.at[idx, 'High'] if setup_info['is_high'] else df.at[idx, 'Low']
         if price is not None:
             fig.add_annotation(x=idx, y=price,
-                               text='/'.join(setup_numbers),
+                               text='/'.join(setup_info['numbers']),
                                showarrow=False,
-                               yshift=10)
+                               yshift=10 if setup_info['is_high'] else -10)
 
     # Добавление линий и аннотаций для верхних и нижних пар
     for pairs, color in [(valid_high_pairs, "Black"), (valid_low_pairs, "Blue")]:
@@ -53,8 +63,6 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
                 fig.add_shape(type="line",
                               x0=idx, y0=price, x1=df.index[end_idx], y1=price,
                               line=dict(color=color, width=1))
-
-    # add_percentage_annotations(fig, df, valid_high_pairs + valid_low_pairs)
 
     fig.update_layout(
         title=symbol,  # Добавляем название тикера как заголовок графика
