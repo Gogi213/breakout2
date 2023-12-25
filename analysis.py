@@ -121,32 +121,4 @@ def find_breakout_candles(df, pairs, is_high=True):
 
     return breakout_candles
 
-def emulate_position_tracking(df, breakout_candles):
-    results = []
 
-    for pair, breakout_idx in breakout_candles:
-        test_idx, test_price = pair[1]
-        nATR = df.at[breakout_idx, 'nATR']
-        tp_price = test_price + test_price * nATR
-        sl_price = test_price - test_price * nATR / 2
-
-        position_opened = False
-        position_outcome = None
-
-        # Перебор свечей после пробоя для определения TP или SL
-        for i in range(breakout_idx, len(df)):
-            candle = df.iloc[i]
-            if candle['High'] >= tp_price:
-                position_outcome = 'TP'
-                break
-            elif candle['Low'] <= sl_price:
-                position_outcome = 'SL'
-                break
-
-        # Добавляем результаты в список
-        if position_outcome == 'TP':
-            results.append((pair, 'Successful', nATR))
-        elif position_outcome == 'SL':
-            results.append((pair, 'Unsuccessful', nATR / 2))
-
-    return results
