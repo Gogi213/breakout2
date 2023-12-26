@@ -86,7 +86,7 @@ def create_layout_with_graph_and_list(symbols, selected_symbol):
 
     return layout
 
-def create_breakout_statistics_table(df, breakout_candles):
+def create_breakout_statistics_table(df, breakout_candles, symbol):
     # Получение результатов эмуляции
     results = emulate_position_tracking(df, breakout_candles)
 
@@ -102,7 +102,7 @@ def create_breakout_statistics_table(df, breakout_candles):
     # Создание таблицы
     fig = go.Figure(data=[go.Table(
         header=dict(values=['Валютная пара', 'Количество пробоев', 'Успешные', 'Неуспешные', 'Винрейт', 'Сумма nATR успешных', 'Сумма nATR/2 неуспешных', 'Сумма двух предыдущих пунктов']),
-        cells=dict(values=[[total_breakouts], [total_breakouts], [successful_breakouts], [unsuccessful_breakouts], [f"{win_rate:.2%}"], [sum_nATR_successful], [sum_nATR_unsuccessful], [total_sum]])
+        cells=dict(values=[[symbol], [total_breakouts], [successful_breakouts], [unsuccessful_breakouts], [f"{win_rate:.2%}"], [sum_nATR_successful], [sum_nATR_unsuccessful], [total_sum]])
     )])
 
     return fig

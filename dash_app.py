@@ -46,7 +46,7 @@ def update_graph(*args):
 
     # Создание таблицы статистики
     breakout_candles = find_breakout_candles(df, valid_high_pairs + valid_low_pairs)
-    statistics_table_figure = plot.create_breakout_statistics_table(df, breakout_candles)
+    statistics_table_figure = plot.create_breakout_statistics_table(df, breakout_candles, symbol)  # Добавлен symbol
 
     # Оборачиваем Figure в компонент dcc.Graph для совместимости с Dash
     statistics_table = dcc.Graph(figure=statistics_table_figure)
