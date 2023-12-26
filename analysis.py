@@ -129,7 +129,7 @@ def emulate_position_tracking(df, breakout_candles, nATR_column='nATR'):
         nATR_value = df.at[breakout_idx, nATR_column]
 
         tp = test_price + test_price * nATR_value
-        sl = test_price - test_price * nATR_value / 2
+        sl = test_price - test_price * (nATR_value / 2)
 
         outcome = None
         profit_loss = 0
@@ -141,11 +141,11 @@ def emulate_position_tracking(df, breakout_candles, nATR_column='nATR'):
 
             if high_price >= tp:
                 outcome = 'Successful'
-                profit_loss = nATR_value
+                profit_loss = nATR_value * 100
                 break
             elif low_price <= sl:
                 outcome = 'Unsuccessful'
-                profit_loss = -nATR_value / 2
+                profit_loss = (-nATR_value / 2.9) * 100
                 break
 
         results.append({
