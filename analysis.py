@@ -145,7 +145,7 @@ def emulate_position_tracking(df, breakout_candles, nATR_column='nATR'):
                 break
             elif low_price <= sl:
                 outcome = 'Unsuccessful'
-                profit_loss = (-nATR_value / 2.9) * 100
+                profit_loss = (-nATR_value / 2) * 100
                 break
 
         results.append({
