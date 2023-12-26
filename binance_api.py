@@ -5,16 +5,17 @@ from cache_manager import CacheManager
 
 cache_manager = CacheManager()
 
-def get_top_futures_pairs(base_currency='USDT', limit=50):
+def get_top_futures_pairs(base_currency='USDT', volume_threshold=150000000):
     url = "https://fapi.binance.com/fapi/v1/ticker/24hr"
     response = requests.get(url)
     if response.status_code != 200:
         raise Exception("Error fetching data from Binance Futures API")
 
     data = response.json()
-    pairs = [item for item in data if item['symbol'].endswith(base_currency)]
+    pairs = [item for item in data if item['symbol'].endswith(base_currency) and float(item['quoteVolume']) >= volume_threshold]
     pairs.sort(key=lambda x: float(x['quoteVolume']), reverse=True)
-    return [pair['symbol'] for pair in pairs[:limit]]
+    return [pair['symbol'] for pair in pairs]
+
 
 def calculate_natr(df, period=14):
     high_low = df['High'] - df['Low']

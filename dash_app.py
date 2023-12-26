@@ -7,8 +7,11 @@ from analysis import find_pivot_high, find_pivot_low, find_pairs, find_low_pairs
 # Создаем Dash-приложение
 app = dash.Dash(__name__)
 
+# Установите желаемый порог объёма
+volume_threshold = 150000000  # Например, 150 миллионов
+
 # Получаем список валютных пар
-symbols = get_top_futures_pairs(limit=30)
+symbols = get_top_futures_pairs(volume_threshold=volume_threshold)
 
 # Определяем макет приложения
 app.layout = html.Div([
