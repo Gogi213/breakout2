@@ -23,21 +23,31 @@ def find_pivot_low(df, left_bars, right_bars):
 # Функция для поиска пар точек
 # analysis.py
 
-def find_pairs(pivot_highs, df):
-    pairs = []
+def find_multi_test_pairs(pivot_highs, df):
+    multi_test_pairs = []
     for i in range(len(pivot_highs)):
         high_idx, high_price = pivot_highs[i]
-        if high_price is not None:
-            current_nATR = df.at[high_idx, 'nATR']
-            if pd.notna(current_nATR):
-                threshold = current_nATR / 2
-                for j in range(i+1, len(pivot_highs)):
-                    _, next_high_price = pivot_highs[j]
-                    if next_high_price is not None:
-                        price_diff = abs(next_high_price - high_price) / high_price
-                        if pd.notna(price_diff) and price_diff <= threshold:
-                            pairs.append((pivot_highs[i], pivot_highs[j]))
-    return pairs
+        if high_price is None:
+            continue
+
+        current_nATR = df.at[high_idx, 'nATR']
+        if pd.notna(current_nATR):
+            threshold = current_nATR / 2
+            tests = []
+            for j in range(i+1, len(pivot_highs)):
+                _, next_high_price = pivot_highs[j]
+                if next_high_price is None:
+                    continue
+
+                price_diff = abs(next_high_price - high_price) / high_price
+                if pd.notna(price_diff) and price_diff <= threshold:
+                    if not tests or next_high_price <= tests[-1][1]:  # Убедимся, что каждый следующий тест ниже или равен предыдущему
+                        tests.append(pivot_highs[j])
+
+            if tests:
+                multi_test_pairs.append((pivot_highs[i], tests))
+
+    return multi_test_pairs
 
 
 def find_low_pairs(pivot_lows, df):
@@ -63,17 +73,20 @@ def find_low_pairs(pivot_lows, df):
 def validate_setup(df, pairs):
     valid_pairs = []
     for pair in pairs:
-        start_idx = df.index.get_loc(pair[0][0])
-        end_idx = df.index.get_loc(pair[1][0])
+        main_peak = pair[0]
+        tests = pair[1]  # Теперь это список тестов
+        for test in tests:
+            start_idx = df.index.get_loc(main_peak[0])
+            end_idx = df.index.get_loc(test[0])
 
-        # Проверяем, что вершина и тест не на одной свече и расстояние между ними >= 15
-        if start_idx != end_idx and end_idx - start_idx >= 15:
-            peak_price = pair[0][1]
-            test_price = pair[1][1]
+            # Проверяем, что вершина и тест не на одной свече и расстояние между ними >= 15
+            if start_idx != end_idx and end_idx - start_idx >= 15:
+                peak_price = main_peak[1]
+                test_price = test[1]
 
-            # Дополнительные проверки
-            if test_price <= peak_price and all(df['High'][i] <= peak_price for i in range(start_idx + 1, end_idx)):
-                valid_pairs.append(pair)
+                # Дополнительные проверки
+                if test_price <= peak_price and all(df['High'][i] <= peak_price for i in range(start_idx + 1, end_idx)):
+                    valid_pairs.append((main_peak, test))
 
     return valid_pairs
 
@@ -156,4 +169,3 @@ def emulate_position_tracking(df, breakout_candles, nATR_column='nATR'):
         })
 
     return results
-
