@@ -46,7 +46,7 @@ def find_multi_test_pairs(pivot_highs, df):
 
             if tests:
                 multi_test_pairs.append((pivot_highs[i], tests))
-
+    print(multi_test_pairs)
     return multi_test_pairs
 
 

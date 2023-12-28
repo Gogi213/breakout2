@@ -29,22 +29,24 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
 
     # Нумерация вершин и тестов
     setup_number = 1
-    for pairs, is_high in [(valid_high_pairs, True), (valid_low_pairs, False)]:
+    for pairs, color in [(valid_high_pairs, "Black"), (valid_low_pairs, "Blue")]:
         for pair in pairs:
-            for idx, _ in pair:
+            main_peak = pair[0]
+            tests = pair[1]
+            for test in tests:
+                idx, price = test
+                if main_peak[0] not in setups_per_candle:
+                    setups_per_candle[main_peak[0]] = {'numbers': [], 'is_high': color == "Black"}
                 if idx not in setups_per_candle:
-                    setups_per_candle[idx] = {'numbers': [], 'is_high': is_high}
+                    setups_per_candle[idx] = {'numbers': [], 'is_high': color == "Black"}
+                setups_per_candle[main_peak[0]]['numbers'].append(str(setup_number))
                 setups_per_candle[idx]['numbers'].append(str(setup_number))
-            setup_number += 1
 
-    # Находим и аннотируем свечи пробоя для верхних и нижних сетапов
-    for pairs, is_high in [(valid_high_pairs, True), (valid_low_pairs, False)]:
-        breakout_candles = find_breakout_candles(df, pairs, is_high)
-        for pair, breakout_idx in breakout_candles:
-            peak_idx = pair[0][0]
-            if peak_idx in setups_per_candle:
-                setup_number = setups_per_candle[peak_idx]['numbers'][0]
-                setups_per_candle[breakout_idx] = {'numbers': [setup_number], 'is_high': is_high}
+                # Добавление линий от вершины к тестам
+                fig.add_shape(type="line",
+                              x0=main_peak[0], y0=main_peak[1], x1=idx, y1=price,
+                              line=dict(color=color, width=1))
+            setup_number += 1
 
     # Создание аннотаций
     for idx, setup_info in setups_per_candle.items():
@@ -55,17 +57,8 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
                                showarrow=False,
                                yshift=10 if setup_info['is_high'] else -10)
 
-    # Добавление линий и аннотаций для верхних и нижних пар
-    for pairs, color in [(valid_high_pairs, "Black"), (valid_low_pairs, "Blue")]:
-        for pair in pairs:
-            for idx, price in pair:
-                end_idx = min(len(df.index) - 1, df.index.get_loc(idx) + 15)
-                fig.add_shape(type="line",
-                              x0=idx, y0=price, x1=df.index[end_idx], y1=price,
-                              line=dict(color=color, width=1))
-
     fig.update_layout(
-        title=symbol,  # Добавляем название тикера как заголовок графика
+        title=symbol,
         autosize=True,
         margin=dict(l=50, r=50, b=100, t=100, pad=4)
     )
