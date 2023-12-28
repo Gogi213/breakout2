@@ -46,7 +46,7 @@ def find_multi_test_pairs(pivot_highs, df):
 
             if tests:
                 multi_test_pairs.append((pivot_highs[i], tests))
-    print(multi_test_pairs)
+    print("multi test pairs -", multi_test_pairs)
     return multi_test_pairs
 
 
@@ -73,7 +73,7 @@ def find_low_pairs(pivot_lows, df):
 
             if tests:
                 low_pairs.append((pivot_lows[i], tests))
-
+    print("Low pairs -", low_pairs)
     return low_pairs
 
 
@@ -95,7 +95,7 @@ def validate_setup(df, pairs):
                 # Дополнительные проверки
                 if test_price <= peak_price and all(df['High'][i] <= peak_price for i in range(start_idx + 1, end_idx)):
                     valid_pairs.append((main_peak, test))
-
+    print("validate_setup/valid_pairs -", valid_pairs)
     return valid_pairs
 
 def validate_low_setup(df, pairs):
@@ -115,7 +115,7 @@ def validate_low_setup(df, pairs):
                 # Дополнительные проверки
                 if test_price >= bottom_price and all(df['Low'][i] >= bottom_price for i in range(start_idx + 1, end_idx)):
                     valid_pairs.append((main_peak, test))
-
+    print("validate_low_setup/valid_pairs -", valid_pairs)
     return valid_pairs
 
 def find_breakout_candles(df, pairs, is_high=True):
