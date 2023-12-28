@@ -51,22 +51,30 @@ def find_multi_test_pairs(pivot_highs, df):
 
 
 def find_low_pairs(pivot_lows, df):
-    pairs = []
+    low_pairs = []
     for i in range(len(pivot_lows)):
         low_idx, low_price = pivot_lows[i]
-        if low_price is not None:
-            # Убедимся, что nATR является числом
-            current_nATR = df.at[low_idx, 'nATR']
-            if pd.notna(current_nATR):
-                threshold = current_nATR / 2
-                for j in range(i+1, len(pivot_lows)):
-                    _, next_low_price = pivot_lows[j]
-                    if next_low_price is not None:
-                        price_diff = abs(next_low_price - low_price) / low_price
-                        # Убедимся, что price_diff является числом
-                        if pd.notna(price_diff) and price_diff <= threshold:
-                            pairs.append((pivot_lows[i], pivot_lows[j]))
-    return pairs
+        if low_price is None:
+            continue
+
+        current_nATR = df.at[low_idx, 'nATR']
+        if pd.notna(current_nATR):
+            threshold = current_nATR / 2
+            tests = []
+            for j in range(i+1, len(pivot_lows)):
+                _, next_low_price = pivot_lows[j]
+                if next_low_price is None:
+                    continue
+
+                price_diff = abs(next_low_price - low_price) / low_price
+                if pd.notna(price_diff) and price_diff <= threshold:
+                    if not tests or next_low_price >= tests[-1][1]:  # Для нижних вершин
+                        tests.append(pivot_lows[j])
+
+            if tests:
+                low_pairs.append((pivot_lows[i], tests))
+
+    return low_pairs
 
 
 # Функция для проверки валидности сетапа
@@ -93,17 +101,20 @@ def validate_setup(df, pairs):
 def validate_low_setup(df, pairs):
     valid_pairs = []
     for pair in pairs:
-        start_idx = df.index.get_loc(pair[0][0])
-        end_idx = df.index.get_loc(pair[1][0])
+        main_peak = pair[0]
+        tests = pair[1]  # Теперь это список тестов
+        for test in tests:
+            start_idx = df.index.get_loc(main_peak[0])
+            end_idx = df.index.get_loc(test[0])
 
-        # Проверяем, что дно и тест не на одной свече и расстояние между ними >= 15
-        if start_idx != end_idx and end_idx - start_idx >= 15:
-            bottom_price = pair[0][1]
-            test_price = pair[1][1]
+            # Проверяем, что дно и тест не на одной свече и расстояние между ними >= 15
+            if start_idx != end_idx and end_idx - start_idx >= 15:
+                bottom_price = main_peak[1]
+                test_price = test[1]
 
-            # Дополнительные проверки
-            if test_price >= bottom_price and all(df['Low'][i] >= bottom_price for i in range(start_idx + 1, end_idx)):
-                valid_pairs.append(pair)
+                # Дополнительные проверки
+                if test_price >= bottom_price and all(df['Low'][i] >= bottom_price for i in range(start_idx + 1, end_idx)):
+                    valid_pairs.append((main_peak, test))
 
     return valid_pairs
 
