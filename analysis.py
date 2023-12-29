@@ -23,219 +23,136 @@ def find_pivot_low(df, left_bars, right_bars):
 # Функция для поиска пар точек
 # analysis.py
 
-def find_multi_test_pairs(pivot_highs, df, existing_setups=None):
-    multi_test_pairs = []
-    last_high_idx = -1  # Индекс последней добавленной вершины
-
+def find_pairs(pivot_highs, df):
+    pairs = []
     for i in range(len(pivot_highs)):
         high_idx, high_price = pivot_highs[i]
-        if high_price is None or (high_idx - last_high_idx < 15):
-            continue
-
-        # Проверка на перекрытие с существующими сетапами
-        if existing_setups and any(high_idx in range(setup[0], setup[1]) for setup in existing_setups):
-            continue
-
-        current_nATR = df.at[high_idx, 'nATR']
-        if pd.notna(current_nATR):
-            threshold = current_nATR / 2
-            tests = []
-            for j in range(i+1, len(pivot_highs)):
-                _, next_high_price = pivot_highs[j]
-                if next_high_price is None:
-                    continue
-
-                price_diff = abs(next_high_price - high_price) / high_price
-                if pd.notna(price_diff) and price_diff <= threshold:
-                    if not tests or next_high_price <= tests[-1][1]:  # Убедимся, что каждый следующий тест ниже или равен предыдущему
-                        tests.append(pivot_highs[j])
-
-            if tests:
-                multi_test_pairs.append((pivot_highs[i], tests))
-                last_high_idx = high_idx  # Обновляем индекс последней добавленной вершины
-
-    return multi_test_pairs
+        if high_price is not None:
+            current_nATR = df.at[high_idx, 'nATR']
+            if pd.notna(current_nATR):
+                threshold = current_nATR / 2
+                for j in range(i+1, len(pivot_highs)):
+                    _, next_high_price = pivot_highs[j]
+                    if next_high_price is not None:
+                        price_diff = abs(next_high_price - high_price) / high_price
+                        if pd.notna(price_diff) and price_diff <= threshold:
+                            pairs.append((pivot_highs[i], pivot_highs[j]))
+    return pairs
 
 
-
-def find_low_pairs(pivot_lows, df, existing_setups=None):
-    low_pairs = []
-    last_low_idx = -1  # Индекс последней добавленной впадины
-
+def find_low_pairs(pivot_lows, df):
+    pairs = []
     for i in range(len(pivot_lows)):
         low_idx, low_price = pivot_lows[i]
-        if low_price is None or (low_idx - last_low_idx < 15):
-            continue
-
-        # Проверка на перекрытие с существующими сетапами
-        if existing_setups and any(low_idx in range(setup[0], setup[1]) for setup in existing_setups):
-            continue
-
-        current_nATR = df.at[low_idx, 'nATR']
-        if pd.notna(current_nATR):
-            threshold = current_nATR / 2
-            tests = []
-            for j in range(i+1, len(pivot_lows)):
-                _, next_low_price = pivot_lows[j]
-                if next_low_price is None:
-                    continue
-
-                price_diff = abs(next_low_price - low_price) / low_price
-                if pd.notna(price_diff) and price_diff <= threshold:
-                    if not tests or next_low_price >= tests[-1][1]:  # Убедимся, что каждый следующий тест выше или равен предыдущему
-                        tests.append(pivot_lows[j])
-
-            if tests:
-                low_pairs.append((pivot_lows[i], tests))
-                last_low_idx = low_idx  # Обновляем индекс последней добавленной впадины
-
-    return low_pairs
+        if low_price is not None:
+            # Убедимся, что nATR является числом
+            current_nATR = df.at[low_idx, 'nATR']
+            if pd.notna(current_nATR):
+                threshold = current_nATR / 2
+                for j in range(i+1, len(pivot_lows)):
+                    _, next_low_price = pivot_lows[j]
+                    if next_low_price is not None:
+                        price_diff = abs(next_low_price - low_price) / low_price
+                        # Убедимся, что price_diff является числом
+                        if pd.notna(price_diff) and price_diff <= threshold:
+                            pairs.append((pivot_lows[i], pivot_lows[j]))
+    return pairs
 
 
 # Функция для проверки валидности сетапа
-def validate_setup(df, pairs, existing_setups=None):
+def validate_setup(df, pairs):
     valid_pairs = []
     for pair in pairs:
-        main_peak = pair[0]
-        tests = pair[1]
-        valid_tests = []
+        start_idx = df.index.get_loc(pair[0][0])
+        end_idx = df.index.get_loc(pair[1][0])
 
-        for test in tests:
-            start_idx = df.index.get_loc(main_peak[0])
-            end_idx = df.index.get_loc(test[0])
+        # Проверяем, что вершина и тест не на одной свече и расстояние между ними >= 15
+        if start_idx != end_idx and end_idx - start_idx >= 15:
+            peak_price = pair[0][1]
+            test_price = pair[1][1]
 
-            # Проверка на перекрытие с существующими сетапами
-            if existing_setups:
-                overlap_with_existing = any(
-                    start_idx == setup_idx or end_idx == setup_idx
-                    for setup in existing_setups
-                    for setup_idx in range(setup[0], setup[1] + 1)
-                )
-                if overlap_with_existing:
-                    continue
+            # Дополнительные проверки
+            if test_price <= peak_price and all(df['High'][i] <= peak_price for i in range(start_idx + 1, end_idx)):
+                valid_pairs.append(pair)
 
-            if start_idx != end_idx and end_idx - start_idx >= 15:
-                peak_price = main_peak[1]
-                test_price = test[1]
-
-                # Проверка условий для свечей между вершиной и тестами
-                if test_price <= peak_price and all(df['High'][i] <= peak_price for i in range(start_idx + 1, end_idx)):
-                    if not valid_tests or all(df['High'][i] <= test_price for i in range(df.index.get_loc(valid_tests[-1][0]) + 1, end_idx)):
-                        valid_tests.append(test)
-
-        if valid_tests:
-            valid_pairs.append((main_peak, valid_tests))
     return valid_pairs
 
-
-
-
-
-
-def validate_low_setup(df, pairs, existing_setups=None):
+def validate_low_setup(df, pairs):
     valid_pairs = []
     for pair in pairs:
-        main_low = pair[0]
-        tests = pair[1]
-        valid_tests = []
+        start_idx = df.index.get_loc(pair[0][0])
+        end_idx = df.index.get_loc(pair[1][0])
 
-        for test in tests:
-            start_idx = df.index.get_loc(main_low[0])
-            end_idx = df.index.get_loc(test[0])
+        # Проверяем, что дно и тест не на одной свече и расстояние между ними >= 15
+        if start_idx != end_idx and end_idx - start_idx >= 15:
+            bottom_price = pair[0][1]
+            test_price = pair[1][1]
 
-            # Проверка на перекрытие с существующими сетапами
-            if existing_setups:
-                overlap_with_existing = any(
-                    start_idx == setup_idx or end_idx == setup_idx
-                    for setup in existing_setups
-                    for setup_idx in range(setup[0], setup[1] + 1)
-                )
-                if overlap_with_existing:
-                    continue
+            # Дополнительные проверки
+            if test_price >= bottom_price and all(df['Low'][i] >= bottom_price for i in range(start_idx + 1, end_idx)):
+                valid_pairs.append(pair)
 
-            if start_idx != end_idx and end_idx - start_idx >= 15:
-                low_price = main_low[1]
-                test_price = test[1]
-
-                # Проверка условий для свечей между впадиной и тестами
-                if test_price >= low_price and all(df['Low'][i] >= low_price for i in range(start_idx + 1, end_idx)):
-                    if not valid_tests or all(df['Low'][i] >= test_price for i in range(df.index.get_loc(valid_tests[-1][0]) + 1, end_idx)):
-                        valid_tests.append(test)
-
-        if valid_tests:
-            valid_pairs.append((main_low, valid_tests))
     return valid_pairs
-
-
-
 
 def find_breakout_candles(df, pairs, is_high=True):
     breakout_candles = []
 
     for pair in pairs:
         peak_idx, peak_price = pair[0]
-        tests = pair[1]
+        test_idx, test_price = pair[1]
 
-        for test in tests:
-            test_idx, test_price = test
+        # Исключаем открытые сетапы
+        if test_idx >= len(df) - 1:
+            continue
 
-            # Исключаем открытые сетапы
-            if test_idx >= len(df) - 1:
-                continue
-
-            # Перебираем свечи после теста для поиска пробоя
-            for i in range(test_idx + 1, len(df)):
-                candle = df.iloc[i]
-                if is_high:
-                    # Для верхних сетапов: пробой снизу вверх
-                    if candle['Low'] <= test_price and candle['High'] >= test_price:
-                        breakout_candles.append((pair, i))
-                        break
-                else:
-                    # Для нижних сетапов: пробой сверху вниз
-                    if candle['High'] >= test_price and candle['Low'] <= test_price:
-                        breakout_candles.append((pair, i))
-                        break
+        # Перебираем свечи после теста для поиска пробоя
+        for i in range(test_idx + 1, len(df)):
+            candle = df.iloc[i]
+            if is_high:
+                # Для верхних сетапов: пробой снизу вверх
+                if candle['Low'] <= test_price and candle['High'] >= test_price:
+                    breakout_candles.append((pair, i))
+                    break
+            else:
+                # Для нижних сетапов: пробой сверху вниз
+                if candle['High'] >= test_price and candle['Low'] <= test_price:
+                    breakout_candles.append((pair, i))
+                    break
 
     return breakout_candles
-
 
 def emulate_position_tracking(df, breakout_candles, nATR_column='nATR'):
     results = []
 
     for pair, breakout_idx in breakout_candles:
-        main_peak = pair[0]
-        tests = pair[1]
+        test_price = pair[1][1]  # Цена нижнего теста
+        nATR_value = df.at[breakout_idx, nATR_column]
 
-        for test in tests:
-            test_idx, test_price = test
-            nATR_value = df.at[breakout_idx, nATR_column]
+        tp = test_price + test_price * nATR_value
+        sl = test_price - test_price * (nATR_value / 2)
 
-            tp = test_price + test_price * nATR_value
-            sl = test_price - test_price * (nATR_value / 2)
+        outcome = None
+        profit_loss = 0
 
-            outcome = None
-            profit_loss = 0
+        # Перебор свечей после пробоя для определения TP или SL
+        for i in range(breakout_idx + 1, len(df)):
+            high_price = df.at[i, 'High']
+            low_price = df.at[i, 'Low']
 
-            # Перебор свечей после пробоя для определения TP или SL
-            for i in range(breakout_idx + 1, len(df)):
-                high_price = df.at[i, 'High']
-                low_price = df.at[i, 'Low']
+            if high_price >= tp:
+                outcome = 'Successful'
+                profit_loss = nATR_value * 100
+                break
+            elif low_price <= sl:
+                outcome = 'Unsuccessful'
+                profit_loss = (-nATR_value / 2) * 100
+                break
 
-                if high_price >= tp:
-                    outcome = 'Successful'
-                    profit_loss = nATR_value * 100
-                    break
-                elif low_price <= sl:
-                    outcome = 'Unsuccessful'
-                    profit_loss = (-nATR_value / 2) * 100
-                    break
-
-            results.append({
-                'setup': (main_peak, test),
-                'breakout_idx': breakout_idx,
-                'outcome': outcome,
-                'profit_loss': profit_loss
-            })
+        results.append({
+            'setup': pair,
+            'breakout_idx': breakout_idx,
+            'outcome': outcome,
+            'profit_loss': profit_loss
+        })
 
     return results
