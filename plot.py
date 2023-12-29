@@ -34,7 +34,12 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
             main_peak = pair[0]
             tests = pair[1]
             for test in tests:
-                idx, price = test
+                if isinstance(test, tuple) and len(test) == 2:
+                    idx, price = test
+                else:
+                    print(f"Некорректный формат данных для теста: {test}")
+                    continue
+
                 if main_peak[0] not in setups_per_candle:
                     setups_per_candle[main_peak[0]] = {'numbers': [], 'is_high': color == "Black"}
                 if idx not in setups_per_candle:
