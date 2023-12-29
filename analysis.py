@@ -158,34 +158,38 @@ def emulate_position_tracking(df, breakout_candles, nATR_column='nATR'):
     results = []
 
     for pair, breakout_idx in breakout_candles:
-        test_price = pair[1][1]  # Цена нижнего теста
-        nATR_value = df.at[breakout_idx, nATR_column]
+        main_peak = pair[0]
+        tests = pair[1]
 
-        tp = test_price + test_price * nATR_value
-        sl = test_price - test_price * (nATR_value / 2)
+        for test in tests:
+            test_idx, test_price = test
+            nATR_value = df.at[breakout_idx, nATR_column]
 
-        outcome = None
-        profit_loss = 0
+            tp = test_price + test_price * nATR_value
+            sl = test_price - test_price * (nATR_value / 2)
 
-        # Перебор свечей после пробоя для определения TP или SL
-        for i in range(breakout_idx + 1, len(df)):
-            high_price = df.at[i, 'High']
-            low_price = df.at[i, 'Low']
+            outcome = None
+            profit_loss = 0
 
-            if high_price >= tp:
-                outcome = 'Successful'
-                profit_loss = nATR_value * 100
-                break
-            elif low_price <= sl:
-                outcome = 'Unsuccessful'
-                profit_loss = (-nATR_value / 2) * 100
-                break
+            # Перебор свечей после пробоя для определения TP или SL
+            for i in range(breakout_idx + 1, len(df)):
+                high_price = df.at[i, 'High']
+                low_price = df.at[i, 'Low']
 
-        results.append({
-            'setup': pair,
-            'breakout_idx': breakout_idx,
-            'outcome': outcome,
-            'profit_loss': profit_loss
-        })
+                if high_price >= tp:
+                    outcome = 'Successful'
+                    profit_loss = nATR_value * 100
+                    break
+                elif low_price <= sl:
+                    outcome = 'Unsuccessful'
+                    profit_loss = (-nATR_value / 2) * 100
+                    break
+
+            results.append({
+                'setup': (main_peak, test),
+                'breakout_idx': breakout_idx,
+                'outcome': outcome,
+                'profit_loss': profit_loss
+            })
 
     return results
