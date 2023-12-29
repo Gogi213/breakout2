@@ -25,9 +25,11 @@ def find_pivot_low(df, left_bars, right_bars):
 
 def find_multi_test_pairs(pivot_highs, df):
     multi_test_pairs = []
+    last_high_idx = -1  # Индекс последней добавленной вершины
+
     for i in range(len(pivot_highs)):
         high_idx, high_price = pivot_highs[i]
-        if high_price is None:
+        if high_price is None or (high_idx - last_high_idx < 15):
             continue
 
         current_nATR = df.at[high_idx, 'nATR']
@@ -46,15 +48,19 @@ def find_multi_test_pairs(pivot_highs, df):
 
             if tests:
                 multi_test_pairs.append((pivot_highs[i], tests))
-    print("multi test pairs -", multi_test_pairs)
+                last_high_idx = high_idx  # Обновляем индекс последней добавленной вершины
+
     return multi_test_pairs
+
 
 
 def find_low_pairs(pivot_lows, df):
     low_pairs = []
+    last_low_idx = -1  # Индекс последней добавленной впадины
+
     for i in range(len(pivot_lows)):
         low_idx, low_price = pivot_lows[i]
-        if low_price is None:
+        if low_price is None or (low_idx - last_low_idx < 15):
             continue
 
         current_nATR = df.at[low_idx, 'nATR']
@@ -68,12 +74,13 @@ def find_low_pairs(pivot_lows, df):
 
                 price_diff = abs(next_low_price - low_price) / low_price
                 if pd.notna(price_diff) and price_diff <= threshold:
-                    if not tests or next_low_price >= tests[-1][1]:  # Для нижних вершин
+                    if not tests or next_low_price >= tests[-1][1]:  # Убедимся, что каждый следующий тест выше или равен предыдущему
                         tests.append(pivot_lows[j])
 
             if tests:
                 low_pairs.append((pivot_lows[i], tests))
-    print("Low pairs -", low_pairs)
+                last_low_idx = low_idx  # Обновляем индекс последней добавленной впадины
+
     return low_pairs
 
 
