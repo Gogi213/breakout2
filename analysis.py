@@ -82,40 +82,45 @@ def validate_setup(df, pairs):
     valid_pairs = []
     for pair in pairs:
         main_peak = pair[0]
-        tests = pair[1]  # Теперь это список тестов
+        tests = pair[1]
+        valid_tests = []
         for test in tests:
             start_idx = df.index.get_loc(main_peak[0])
             end_idx = df.index.get_loc(test[0])
 
-            # Проверяем, что вершина и тест не на одной свече и расстояние между ними >= 15
             if start_idx != end_idx and end_idx - start_idx >= 15:
                 peak_price = main_peak[1]
                 test_price = test[1]
 
-                # Дополнительные проверки
                 if test_price <= peak_price and all(df['High'][i] <= peak_price for i in range(start_idx + 1, end_idx)):
-                    valid_pairs.append((main_peak, test))
-    print("validate_setup/valid_pairs -", valid_pairs)
+                    valid_tests.append(test)
+
+        if valid_tests:
+            valid_pairs.append((main_peak, valid_tests))
+    print("valid_pairs -", valid_pairs)
     return valid_pairs
+
 
 def validate_low_setup(df, pairs):
     valid_pairs = []
     for pair in pairs:
-        main_peak = pair[0]
-        tests = pair[1]  # Теперь это список тестов
+        main_low = pair[0]
+        tests = pair[1]
+        valid_tests = []
         for test in tests:
-            start_idx = df.index.get_loc(main_peak[0])
+            start_idx = df.index.get_loc(main_low[0])
             end_idx = df.index.get_loc(test[0])
 
-            # Проверяем, что дно и тест не на одной свече и расстояние между ними >= 15
             if start_idx != end_idx and end_idx - start_idx >= 15:
-                bottom_price = main_peak[1]
+                low_price = main_low[1]
                 test_price = test[1]
 
-                # Дополнительные проверки
-                if test_price >= bottom_price and all(df['Low'][i] >= bottom_price for i in range(start_idx + 1, end_idx)):
-                    valid_pairs.append((main_peak, test))
-    print("validate_low_setup/valid_pairs -", valid_pairs)
+                if test_price >= low_price and all(df['Low'][i] >= low_price for i in range(start_idx + 1, end_idx)):
+                    valid_tests.append(test)
+
+        if valid_tests:
+            valid_pairs.append((main_low, valid_tests))
+    print("Low valid_pairs -", valid_pairs)
     return valid_pairs
 
 def find_breakout_candles(df, pairs, is_high=True):
@@ -123,27 +128,31 @@ def find_breakout_candles(df, pairs, is_high=True):
 
     for pair in pairs:
         peak_idx, peak_price = pair[0]
-        test_idx, test_price = pair[1]
+        tests = pair[1]
 
-        # Исключаем открытые сетапы
-        if test_idx >= len(df) - 1:
-            continue
+        for test in tests:
+            test_idx, test_price = test
 
-        # Перебираем свечи после теста для поиска пробоя
-        for i in range(test_idx + 1, len(df)):
-            candle = df.iloc[i]
-            if is_high:
-                # Для верхних сетапов: пробой снизу вверх
-                if candle['Low'] <= test_price and candle['High'] >= test_price:
-                    breakout_candles.append((pair, i))
-                    break
-            else:
-                # Для нижних сетапов: пробой сверху вниз
-                if candle['High'] >= test_price and candle['Low'] <= test_price:
-                    breakout_candles.append((pair, i))
-                    break
+            # Исключаем открытые сетапы
+            if test_idx >= len(df) - 1:
+                continue
+
+            # Перебираем свечи после теста для поиска пробоя
+            for i in range(test_idx + 1, len(df)):
+                candle = df.iloc[i]
+                if is_high:
+                    # Для верхних сетапов: пробой снизу вверх
+                    if candle['Low'] <= test_price and candle['High'] >= test_price:
+                        breakout_candles.append((pair, i))
+                        break
+                else:
+                    # Для нижних сетапов: пробой сверху вниз
+                    if candle['High'] >= test_price and candle['Low'] <= test_price:
+                        breakout_candles.append((pair, i))
+                        break
 
     return breakout_candles
+
 
 def emulate_position_tracking(df, breakout_candles, nATR_column='nATR'):
     results = []
