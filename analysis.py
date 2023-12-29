@@ -23,13 +23,17 @@ def find_pivot_low(df, left_bars, right_bars):
 # Функция для поиска пар точек
 # analysis.py
 
-def find_multi_test_pairs(pivot_highs, df):
+def find_multi_test_pairs(pivot_highs, df, existing_setups=None):
     multi_test_pairs = []
     last_high_idx = -1  # Индекс последней добавленной вершины
 
     for i in range(len(pivot_highs)):
         high_idx, high_price = pivot_highs[i]
         if high_price is None or (high_idx - last_high_idx < 15):
+            continue
+
+        # Проверка на перекрытие с существующими сетапами
+        if existing_setups and any(high_idx in range(setup[0], setup[1]) for setup in existing_setups):
             continue
 
         current_nATR = df.at[high_idx, 'nATR']
@@ -54,13 +58,17 @@ def find_multi_test_pairs(pivot_highs, df):
 
 
 
-def find_low_pairs(pivot_lows, df):
+def find_low_pairs(pivot_lows, df, existing_setups=None):
     low_pairs = []
     last_low_idx = -1  # Индекс последней добавленной впадины
 
     for i in range(len(pivot_lows)):
         low_idx, low_price = pivot_lows[i]
         if low_price is None or (low_idx - last_low_idx < 15):
+            continue
+
+        # Проверка на перекрытие с существующими сетапами
+        if existing_setups and any(low_idx in range(setup[0], setup[1]) for setup in existing_setups):
             continue
 
         current_nATR = df.at[low_idx, 'nATR']
@@ -85,15 +93,26 @@ def find_low_pairs(pivot_lows, df):
 
 
 # Функция для проверки валидности сетапа
-def validate_setup(df, pairs):
+def validate_setup(df, pairs, existing_setups=None):
     valid_pairs = []
     for pair in pairs:
         main_peak = pair[0]
         tests = pair[1]
         valid_tests = []
+
         for test in tests:
             start_idx = df.index.get_loc(main_peak[0])
             end_idx = df.index.get_loc(test[0])
+
+            # Проверка на перекрытие с существующими сетапами
+            if existing_setups:
+                overlap_with_existing = any(
+                    start_idx == setup_idx or end_idx == setup_idx
+                    for setup in existing_setups
+                    for setup_idx in range(setup[0], setup[1] + 1)
+                )
+                if overlap_with_existing:
+                    continue
 
             if start_idx != end_idx and end_idx - start_idx >= 15:
                 peak_price = main_peak[1]
@@ -104,19 +123,31 @@ def validate_setup(df, pairs):
 
         if valid_tests:
             valid_pairs.append((main_peak, valid_tests))
-    print("valid_pairs -", valid_pairs)
     return valid_pairs
 
 
-def validate_low_setup(df, pairs):
+
+
+def validate_low_setup(df, pairs, existing_setups=None):
     valid_pairs = []
     for pair in pairs:
         main_low = pair[0]
         tests = pair[1]
         valid_tests = []
+
         for test in tests:
             start_idx = df.index.get_loc(main_low[0])
             end_idx = df.index.get_loc(test[0])
+
+            # Проверка на перекрытие с существующими сетапами
+            if existing_setups:
+                overlap_with_existing = any(
+                    start_idx == setup_idx or end_idx == setup_idx
+                    for setup in existing_setups
+                    for setup_idx in range(setup[0], setup[1] + 1)
+                )
+                if overlap_with_existing:
+                    continue
 
             if start_idx != end_idx and end_idx - start_idx >= 15:
                 low_price = main_low[1]
@@ -127,8 +158,9 @@ def validate_low_setup(df, pairs):
 
         if valid_tests:
             valid_pairs.append((main_low, valid_tests))
-    print("Low valid_pairs -", valid_pairs)
     return valid_pairs
+
+
 
 def find_breakout_candles(df, pairs, is_high=True):
     breakout_candles = []
