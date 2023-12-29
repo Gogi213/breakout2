@@ -118,12 +118,16 @@ def validate_setup(df, pairs, existing_setups=None):
                 peak_price = main_peak[1]
                 test_price = test[1]
 
+                # Проверка условий для свечей между вершиной и тестами
                 if test_price <= peak_price and all(df['High'][i] <= peak_price for i in range(start_idx + 1, end_idx)):
-                    valid_tests.append(test)
+                    if not valid_tests or all(df['High'][i] <= test_price for i in range(df.index.get_loc(valid_tests[-1][0]) + 1, end_idx)):
+                        valid_tests.append(test)
 
         if valid_tests:
             valid_pairs.append((main_peak, valid_tests))
     return valid_pairs
+
+
 
 
 
@@ -153,12 +157,15 @@ def validate_low_setup(df, pairs, existing_setups=None):
                 low_price = main_low[1]
                 test_price = test[1]
 
+                # Проверка условий для свечей между впадиной и тестами
                 if test_price >= low_price and all(df['Low'][i] >= low_price for i in range(start_idx + 1, end_idx)):
-                    valid_tests.append(test)
+                    if not valid_tests or all(df['Low'][i] >= test_price for i in range(df.index.get_loc(valid_tests[-1][0]) + 1, end_idx)):
+                        valid_tests.append(test)
 
         if valid_tests:
             valid_pairs.append((main_low, valid_tests))
     return valid_pairs
+
 
 
 
