@@ -43,8 +43,11 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
         for pair, breakout_idx in breakout_candles:
             peak_idx = pair[0][0]
             if peak_idx in setups_per_candle:
-                setup_number = setups_per_candle[peak_idx]['numbers'][0]
-                setups_per_candle[breakout_idx] = {'numbers': [setup_number], 'is_high': is_high}
+                setup_numbers = setups_per_candle[peak_idx]['numbers']
+                if breakout_idx not in setups_per_candle:
+                    setups_per_candle[breakout_idx] = {'numbers': setup_numbers, 'is_high': is_high}
+                else:
+                    setups_per_candle[breakout_idx]['numbers'].extend(setup_numbers)
 
     # Создание аннотаций
     for idx, setup_info in setups_per_candle.items():
