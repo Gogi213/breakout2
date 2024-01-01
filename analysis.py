@@ -25,38 +25,56 @@ def find_pivot_low(df, left_bars, right_bars):
 
 def find_pairs(pivot_highs, df):
     pairs = []
+    used_tests = set()  # Множество для хранения индексов использованных тестов
+
     for i in range(len(pivot_highs)):
         high_idx, high_price = pivot_highs[i]
         if high_price is not None:
             current_nATR = df.at[high_idx, 'nATR']
             if pd.notna(current_nATR):
                 threshold = current_nATR / 2
-                for j in range(i+1, len(pivot_highs)):
-                    _, next_high_price = pivot_highs[j]
-                    if next_high_price is not None:
+                best_test = None
+                for j in range(i + 1, len(pivot_highs)):
+                    next_idx, next_high_price = pivot_highs[j]
+                    if next_high_price is not None and next_idx not in used_tests:
                         price_diff = abs(next_high_price - high_price) / high_price
                         if pd.notna(price_diff) and price_diff <= threshold:
-                            pairs.append((pivot_highs[i], pivot_highs[j]))
+                            if best_test is None or (next_high_price > best_test[1] and next_high_price <= high_price):
+                                best_test = (next_idx, next_high_price)
+                if best_test:
+                    pairs.append((pivot_highs[i], best_test))
+                    # Помечаем все последующие точки в пределах threshold как использованные
+                    for k in range(best_test[0], min(best_test[0] + int(threshold), len(pivot_highs))):
+                        used_tests.add(pivot_highs[k][0])
     return pairs
+
 
 
 def find_low_pairs(pivot_lows, df):
     pairs = []
+    used_tests = set()  # Множество для хранения индексов использованных тестов
+
     for i in range(len(pivot_lows)):
         low_idx, low_price = pivot_lows[i]
         if low_price is not None:
-            # Убедимся, что nATR является числом
             current_nATR = df.at[low_idx, 'nATR']
             if pd.notna(current_nATR):
                 threshold = current_nATR / 2
-                for j in range(i+1, len(pivot_lows)):
-                    _, next_low_price = pivot_lows[j]
-                    if next_low_price is not None:
+                best_test = None
+                for j in range(i + 1, len(pivot_lows)):
+                    next_idx, next_low_price = pivot_lows[j]
+                    if next_low_price is not None and next_idx not in used_tests:
                         price_diff = abs(next_low_price - low_price) / low_price
-                        # Убедимся, что price_diff является числом
                         if pd.notna(price_diff) and price_diff <= threshold:
-                            pairs.append((pivot_lows[i], pivot_lows[j]))
+                            if best_test is None or (next_low_price < best_test[1] and next_low_price >= low_price):
+                                best_test = (next_idx, next_low_price)
+                if best_test:
+                    pairs.append((pivot_lows[i], best_test))
+                    # Помечаем все последующие точки в пределах threshold как использованные
+                    for k in range(best_test[0], min(best_test[0] + int(threshold), len(pivot_lows))):
+                        used_tests.add(pivot_lows[k][0])
     return pairs
+
 
 
 # Функция для проверки валидности сетапа

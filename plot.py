@@ -1,6 +1,7 @@
 import plotly.graph_objects as go
 from dash import html, dcc
 from analysis import find_breakout_candles, emulate_position_tracking
+from plotly.subplots import make_subplots
 
 def add_percentage_annotations(fig, df, pairs):
     for pair in pairs:
@@ -17,12 +18,21 @@ def add_percentage_annotations(fig, df, pairs):
                            showarrow=True,
                            arrowhead=1)
 
+import plotly.graph_objects as go
+
 def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pairs, symbol):
-    fig = go.Figure(data=[go.Candlestick(x=df.index,
-                                         open=df['Open'],
-                                         high=df['High'],
-                                         low=df['Low'],
-                                         close=df['Close'])])
+    # Создание сетки графиков с 2 рядами
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                        vertical_spacing=0.03, subplot_titles=(symbol, 'nATR'),
+                        row_heights=[0.7, 0.3])
+
+    # Добавление свечного графика
+    candlestick = go.Candlestick(x=df.index, open=df['Open'], high=df['High'],
+                                 low=df['Low'], close=df['Close'])
+    fig.add_trace(candlestick, row=1, col=1)
+
+    # Добавление графика nATR
+    fig.add_trace(go.Bar(x=df.index, y=df['nATR'], marker_color='blue'), row=2, col=1)
 
     # Словарь для хранения номеров сетапов по каждой свече
     setups_per_candle = {}
@@ -56,24 +66,24 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
             fig.add_annotation(x=idx, y=price,
                                text='/'.join(setup_info['numbers']),
                                showarrow=False,
-                               yshift=10 if setup_info['is_high'] else -10)
+                               yshift=10 if setup_info['is_high'] else -10,
+                               row=1, col=1)
 
-    # Добавление линий и аннотаций для верхних и нижних пар
-    for pairs, color in [(valid_high_pairs, "Black"), (valid_low_pairs, "Blue")]:
-        for pair in pairs:
-            for idx, price in pair:
-                end_idx = min(len(df.index) - 1, df.index.get_loc(idx) + 15)
-                fig.add_shape(type="line",
-                              x0=idx, y0=price, x1=df.index[end_idx], y1=price,
-                              line=dict(color=color, width=1))
-
+    # Обновление макета графика
     fig.update_layout(
-        title=symbol,  # Добавляем название тикера как заголовок графика
-        autosize=True,
+        height=800, width=1200, title_text="График с nATR",
+        showlegend=False,  # Отключение легенды
         margin=dict(l=50, r=50, b=100, t=100, pad=4)
     )
+    fig.update_xaxes(title_text="Дата", row=2, col=1)
+    fig.update_yaxes(title_text="Цена", row=1, col=1)
+    fig.update_yaxes(title_text="nATR", row=2, col=1)
+
+    # Отключение кнопок 'Trace' в верхнем правом углу
+    fig.update_layout(updatemenus=[dict(type="buttons", showactive=False)])
 
     return fig
+
 
 def create_layout_with_graph_and_list(symbols, selected_symbol):
     graph = dcc.Graph(id='currency-pair-graph', style={'height': '100vh'})  # Задаем высоту графика
