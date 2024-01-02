@@ -112,7 +112,7 @@ def validate_low_setup(df, pairs):
 
     return valid_pairs
 
-def find_breakout_candles(df, pairs, is_high=True):
+def find_breakout_candles(df, pairs, is_high=True, min_candles_after_test=5):
     breakout_candles = []
 
     for pair in pairs:
@@ -125,6 +125,10 @@ def find_breakout_candles(df, pairs, is_high=True):
 
         # Перебираем свечи после теста для поиска пробоя
         for i in range(test_idx + 1, len(df)):
+            # Проверяем, что пробойная свеча не ближе чем на 5 свечей к тесту
+            if i - test_idx < min_candles_after_test:
+                continue
+
             candle = df.iloc[i]
             if is_high:
                 # Для верхних сетапов: пробой снизу вверх
