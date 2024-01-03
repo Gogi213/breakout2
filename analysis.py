@@ -191,33 +191,3 @@ def emulate_position_tracking(df, breakout_candles, nATR_column='nATR'):
         })
 
     return results
-
-def process_setups(df, left_bars, right_bars):
-    # Шаг 1: Нахождение вершин и донных точек
-    pivot_highs = find_pivot_high(df, left_bars, right_bars)
-    pivot_lows = find_pivot_low(df, left_bars, right_bars)
-
-    # Шаг 2: Формирование пар вершина-тест
-    high_pairs = find_pairs(pivot_highs, df)
-    low_pairs = find_low_pairs(pivot_lows, df)
-
-    # Шаг 3: Валидация сетапов
-    valid_high_pairs = validate_setup(df, high_pairs)
-    valid_low_pairs = validate_low_setup(df, low_pairs)
-
-    # Шаг 4: Сохранение информации о сетапах
-    setups = valid_high_pairs + valid_low_pairs  # Пример объединения верхних и нижних сетапов
-
-    # Шаг 5: Отслеживание смежности сетапов
-    setups_adjacency = {}  # Словарь для хранения смежности
-
-    for i in range(len(setups) - 1):
-        current_setup = setups[i]
-        next_setup = setups[i + 1]
-        # Проверяем, является ли последняя свеча текущего сетапа первой свечей следующего сетапа
-        if current_setup[-1]['index'] == next_setup[0]['index']:
-            setups_adjacency[current_setup[-1]['index']] = (i, i + 1)
-
-    # Возвращаем сетапы и информацию о смежности
-    return setups, setups_adjacency
-
