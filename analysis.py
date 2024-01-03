@@ -112,12 +112,13 @@ def validate_low_setup(df, pairs):
 
     return valid_pairs
 
-def find_breakout_candles(df, pairs, is_high=True, min_candles_after_test=5):
+def find_breakout_candles(df, pairs, setup_numbers, is_high=True, min_candles_after_test=5):
     breakout_candles = []
 
-    for pair in pairs:
+    for index, pair in enumerate(pairs):
         peak_idx, peak_price = pair[0]
         test_idx, test_price = pair[1]
+        current_setup_number = setup_numbers[index]
 
         # Исключаем открытые сетапы
         if test_idx >= len(df) - 1:
@@ -133,12 +134,24 @@ def find_breakout_candles(df, pairs, is_high=True, min_candles_after_test=5):
             if is_high:
                 # Для верхних сетапов: пробой снизу вверх
                 if candle['Low'] <= test_price and candle['High'] >= test_price:
-                    breakout_candles.append((pair, i))
+                    # Определяем аннотацию для пробойной свечи
+                    if i == peak_idx:
+                        # Если пробойная свеча является вершиной следующего сетапа
+                        next_setup_number = setup_numbers[index + 1] if index + 1 < len(setup_numbers) else current_setup_number
+                        setup_label = f"{next_setup_number}/{current_setup_number}"
+                    else:
+                        setup_label = str(current_setup_number)
+                    breakout_candles.append((pair, i, setup_label))
                     break
             else:
-                # Для нижних сетапов: пробой сверху вниз
+                # Аналогичная логика для нижних сетапов
                 if candle['High'] >= test_price and candle['Low'] <= test_price:
-                    breakout_candles.append((pair, i))
+                    if i == peak_idx:
+                        next_setup_number = setup_numbers[index + 1] if index + 1 < len(setup_numbers) else current_setup_number
+                        setup_label = f"{next_setup_number}/{current_setup_number}"
+                    else:
+                        setup_label = str(current_setup_number)
+                    breakout_candles.append((pair, i, setup_label))
                     break
 
     return breakout_candles
@@ -178,3 +191,33 @@ def emulate_position_tracking(df, breakout_candles, nATR_column='nATR'):
         })
 
     return results
+
+def process_setups(df, left_bars, right_bars):
+    # Шаг 1: Нахождение вершин и донных точек
+    pivot_highs = find_pivot_high(df, left_bars, right_bars)
+    pivot_lows = find_pivot_low(df, left_bars, right_bars)
+
+    # Шаг 2: Формирование пар вершина-тест
+    high_pairs = find_pairs(pivot_highs, df)
+    low_pairs = find_low_pairs(pivot_lows, df)
+
+    # Шаг 3: Валидация сетапов
+    valid_high_pairs = validate_setup(df, high_pairs)
+    valid_low_pairs = validate_low_setup(df, low_pairs)
+
+    # Шаг 4: Сохранение информации о сетапах
+    setups = valid_high_pairs + valid_low_pairs  # Пример объединения верхних и нижних сетапов
+
+    # Шаг 5: Отслеживание смежности сетапов
+    setups_adjacency = {}  # Словарь для хранения смежности
+
+    for i in range(len(setups) - 1):
+        current_setup = setups[i]
+        next_setup = setups[i + 1]
+        # Проверяем, является ли последняя свеча текущего сетапа первой свечей следующего сетапа
+        if current_setup[-1]['index'] == next_setup[0]['index']:
+            setups_adjacency[current_setup[-1]['index']] = (i, i + 1)
+
+    # Возвращаем сетапы и информацию о смежности
+    return setups, setups_adjacency
+
