@@ -1,7 +1,10 @@
 import plotly.graph_objects as go
+import logging
 from dash import html, dcc
 from analysis import find_breakout_candles, emulate_position_tracking
 from plotly.subplots import make_subplots
+
+logging.basicConfig(level=logging.INFO)
 
 def add_percentage_annotations(fig, df, pairs):
     for pair in pairs:
@@ -37,14 +40,26 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
     # Словарь для хранения номеров сетапов по каждой свече
     setups_per_candle = {}
 
-    # Нумерация вершин и тестов
     setup_number = 1
     for pairs, is_high in [(valid_high_pairs, True), (valid_low_pairs, False)]:
         for pair in pairs:
-            for idx, _ in pair:
-                if idx not in setups_per_candle:
-                    setups_per_candle[idx] = {'numbers': [], 'is_high': is_high}
-                setups_per_candle[idx]['numbers'].append(str(setup_number))
+            # Определение типов свечей в паре
+            if len(pair) == 2:  # Если в сетапе две свечи
+                peak_idx, test_idx = pair[0][0], pair[1][0]
+                setups_per_candle[peak_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak'}
+                setups_per_candle[test_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'test'}
+            elif len(pair) > 2:  # Если в сетапе более двух свечей
+                peak_idx = pair[0][0]
+                breakout_idx = pair[-1][0]
+                setups_per_candle[peak_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak'}
+                setups_per_candle[breakout_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'breakout'}
+                # Остальные свечи считаются тестами
+                for idx, _ in pair[1:-1]:
+                    if idx not in setups_per_candle:
+                        setups_per_candle[idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'test'}
+                    else:
+                        setups_per_candle[idx]['numbers'].append(str(setup_number))
+
             setup_number += 1
 
     # Находим и аннотируем свечи пробоя для верхних и нижних сетапов
@@ -81,6 +96,8 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
 
     # Отключение кнопок 'Trace' в верхнем правом углу
     fig.update_layout(updatemenus=[dict(type="buttons", showactive=False)])
+
+    logging.info("Содержимое setups_per_candle: %s", setups_per_candle)
 
     return fig
 
