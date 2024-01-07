@@ -70,9 +70,10 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
             if peak_idx in setups_per_candle:
                 setup_numbers = setups_per_candle[peak_idx]['numbers']
                 if breakout_idx not in setups_per_candle:
-                    setups_per_candle[breakout_idx] = {'numbers': setup_numbers, 'is_high': is_high}
+                    setups_per_candle[breakout_idx] = {'numbers': setup_numbers, 'is_high': is_high, 'type': 'breakout'}
                 else:
                     setups_per_candle[breakout_idx]['numbers'].extend(setup_numbers)
+                    setups_per_candle[breakout_idx]['type'] = 'breakout'  # Явно указываем тип пробойной свечи
 
     # Создание аннотаций
     for idx, setup_info in setups_per_candle.items():
