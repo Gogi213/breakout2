@@ -5,7 +5,7 @@ from cache_manager import CacheManager
 
 cache_manager = CacheManager()
 
-def get_top_futures_pairs(base_currency='USDT', volume_threshold=100000000):
+def get_top_futures_pairs(base_currency='USDT', volume_threshold=110000000):
     url = "https://fapi.binance.com/fapi/v1/ticker/24hr"
     response = requests.get(url)
     if response.status_code != 200:
