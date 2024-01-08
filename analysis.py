@@ -80,58 +80,37 @@ def find_low_pairs(pivot_lows, df):
 # Функция для проверки валидности сетапа
 def validate_setup(df, pairs):
     valid_pairs = []
-    used_breakout_candles = set()
-
     for pair in pairs:
         start_idx = df.index.get_loc(pair[0][0])
         end_idx = df.index.get_loc(pair[1][0])
 
-        # Проверка на пересечение сетапов более чем на одну свечу
-        if any(start_idx <= other_end_idx and end_idx >= other_start_idx
-               for other_start_idx, other_end_idx in valid_pairs):
-            continue
-
-        # Проверка на использование одной и той же пробойной свечи
-        if end_idx in used_breakout_candles:
-            continue
-
-        # Дополнительные проверки и добавление валидных пар
+        # Проверяем, что вершина и тест не на одной свече и расстояние между ними >= 15
         if start_idx != end_idx and end_idx - start_idx >= 15:
             peak_price = pair[0][1]
             test_price = pair[1][1]
+
+            # Дополнительные проверки
             if test_price <= peak_price and all(df['High'][i] <= peak_price for i in range(start_idx + 1, end_idx)):
-                valid_pairs.append((start_idx, end_idx))
-                used_breakout_candles.add(end_idx)
+                valid_pairs.append(pair)
 
-    return [pair for pair in pairs if (df.index.get_loc(pair[0][0]), df.index.get_loc(pair[1][0])) in valid_pairs]
-
+    return valid_pairs
 
 def validate_low_setup(df, pairs):
     valid_pairs = []
-    used_breakout_candles = set()
-
     for pair in pairs:
         start_idx = df.index.get_loc(pair[0][0])
         end_idx = df.index.get_loc(pair[1][0])
 
-        # Проверка на пересечение сетапов более чем на одну свечу
-        if any(start_idx <= other_end_idx and end_idx >= other_start_idx
-               for other_start_idx, other_end_idx in valid_pairs):
-            continue
-
-        # Проверка на использование одной и той же пробойной свечи
-        if end_idx in used_breakout_candles:
-            continue
-
-        # Дополнительные проверки и добавление валидных пар
+        # Проверяем, что дно и тест не на одной свече и расстояние между ними >= 15
         if start_idx != end_idx and end_idx - start_idx >= 15:
             bottom_price = pair[0][1]
             test_price = pair[1][1]
-            if test_price >= bottom_price and all(df['Low'][i] >= bottom_price for i in range(start_idx + 1, end_idx)):
-                valid_pairs.append((start_idx, end_idx))
-                used_breakout_candles.add(end_idx)
 
-    return [pair for pair in pairs if (df.index.get_loc(pair[0][0]), df.index.get_loc(pair[1][0])) in valid_pairs]
+            # Дополнительные проверки
+            if test_price >= bottom_price and all(df['Low'][i] >= bottom_price for i in range(start_idx + 1, end_idx)):
+                valid_pairs.append(pair)
+
+    return valid_pairs
 
 def find_breakout_candles(df, pairs, is_high=True, min_candles_after_test=5):
     breakout_candles = []
