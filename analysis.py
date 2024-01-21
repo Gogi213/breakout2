@@ -150,8 +150,8 @@ def emulate_position_tracking(df, breakout_candles, nATR_column='nATR'):
         test_price = pair[1][1]  # Цена нижнего теста
         nATR_value = df.at[breakout_idx, nATR_column]
 
-        tp = test_price + test_price * nATR_value
-        sl = test_price - test_price * (nATR_value / 2)
+        tp = test_price + (test_price * nATR_value * 1.5)
+        sl = test_price - test_price * (nATR_value / 1.8)
 
         outcome = None
         profit_loss = 0
