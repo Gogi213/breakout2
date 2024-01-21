@@ -5,7 +5,7 @@ from cache_manager import CacheManager
 
 cache_manager = CacheManager()
 
-def get_top_futures_pairs(base_currency='USDT', volume_threshold=110000000):
+def get_top_futures_pairs(base_currency='USDT', volume_threshold=150000000):
     url = "https://fapi.binance.com/fapi/v1/ticker/24hr"
     response = requests.get(url)
     if response.status_code != 200:
@@ -17,7 +17,7 @@ def get_top_futures_pairs(base_currency='USDT', volume_threshold=110000000):
     return [pair['symbol'] for pair in pairs]
 
 
-def calculate_natr(df, period=14):
+def calculate_natr(df, period=7):
     high_low = df['High'] - df['Low']
     high_close = (df['High'] - df['Close'].shift()).abs()
     low_close = (df['Low'] - df['Close'].shift()).abs()
@@ -48,7 +48,10 @@ def get_historical_futures_data(symbol, interval='15m', limit=1500):
 
     data = response.json()
     df = pd.DataFrame(data, columns=['Open time', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'])
+    df['symbol'] = symbol  # Добавляем колонку 'symbol'
+    # Преобразование времени и числовых данных
     df['Open time'] = pd.to_datetime(df['Open time'], unit='ms')
+
     df['Close time'] = pd.to_datetime(df['Close time'], unit='ms')
 
     numeric_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
@@ -59,6 +62,7 @@ def get_historical_futures_data(symbol, interval='15m', limit=1500):
     df['nATR'] = calculate_natr(df)
 
     cache_manager.save_cache(df, symbol, interval)
+    df.set_index('Open time', inplace=True)
     return df
 
 def preload_data():
