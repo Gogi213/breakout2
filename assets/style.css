@@ -11,3 +11,16 @@
 .symbol-item:active {
     background-color: rgba(0, 0, 0, 0.6); /* Черный с прозрачностью 70% */
 }
+
+.statistics-table {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000; /* Убедитесь, что таблица будет поверх других элементов */
+    margin-bottom:-250px;
+    margin-top:-800px;
+    padding: 0;
+    padding-top:-200px;
+    overflow: auto; /* добавляет полосы прокрутки, если содержимое больше контейнера */
+}

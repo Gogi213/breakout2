@@ -36,9 +36,9 @@ def update_graph(*args):
 
     df = get_historical_futures_data(symbol)
 
-    pivot_highs = find_pivot_high(df, left_bars=30, right_bars=25)
+    pivot_highs = find_pivot_high(df, left_bars=15, right_bars=15)
     valid_high_pairs = validate_setup(df, find_pairs(pivot_highs, df))  # Исправлено: добавлен аргумент df
-    pivot_lows = find_pivot_low(df, left_bars=30, right_bars=25)
+    pivot_lows = find_pivot_low(df, left_bars=15, right_bars=15)
     valid_low_pairs = validate_low_setup(df, find_low_pairs(pivot_lows, df))  # Исправлено: добавлен аргумент df
 
     # Создание графика
@@ -49,6 +49,6 @@ def update_graph(*args):
     statistics_table_figure = plot.create_breakout_statistics_table(df, breakout_candles, symbol)  # Добавлен symbol
 
     # Оборачиваем Figure в компонент dcc.Graph для совместимости с Dash
-    statistics_table = dcc.Graph(figure=statistics_table_figure)
+    statistics_table = dcc.Graph(figure=statistics_table_figure, className="statistics-table")
 
     return graph, statistics_table
