@@ -80,7 +80,7 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
         price = df.at[idx, 'High'] if setup_info['is_high'] else df.at[idx, 'Low']
         if price is not None:
             fig.add_annotation(x=idx, y=price,
-                               text='/'.join(setup_info['numbers']),
+                               text=setup_info['numbers'][0],
                                showarrow=False,
                                yshift=10 if setup_info['is_high'] else -10,
                                row=1, col=1)

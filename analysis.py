@@ -5,8 +5,9 @@ import pandas as pd
 def find_pivot_high(df, left_bars, right_bars):
     highs = []
     for i in range(left_bars, len(df) - right_bars):
-        if df['High'][i] == max(df['High'][i-left_bars:i+right_bars+1]):
-            highs.append((df.index[i], df['High'][i]))
+        window = df.iloc[i-left_bars:i+right_bars+1]
+        if df['High'].iloc[i] == max(window['High']):
+            highs.append((df.index[i], df['High'].iloc[i]))
         else:
             highs.append((df.index[i], None))
     return highs
@@ -14,8 +15,9 @@ def find_pivot_high(df, left_bars, right_bars):
 def find_pivot_low(df, left_bars, right_bars):
     lows = []
     for i in range(left_bars, len(df) - right_bars):
-        if df['Low'][i] == min(df['Low'][i-left_bars:i+right_bars+1]):
-            lows.append((df.index[i], df['Low'][i]))
+        window = df.iloc[i-left_bars:i+right_bars+1]
+        if df['Low'].iloc[i] == min(window['Low']):
+            lows.append((df.index[i], df['Low'].iloc[i]))
         else:
             lows.append((df.index[i], None))
     return lows
