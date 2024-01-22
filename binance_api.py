@@ -54,6 +54,8 @@ def get_historical_futures_data(symbol, interval='15m', limit=1500):
 
     df['Close time'] = pd.to_datetime(df['Close time'], unit='ms')
 
+    df['Formatted Open Time'] = df['Open time'].dt.strftime('%Y-%m-%d %H:%M')
+
     numeric_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
     for col in numeric_columns:
         df[col] = pd.to_numeric(df[col], errors='coerce')
