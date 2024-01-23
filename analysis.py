@@ -82,37 +82,71 @@ def find_low_pairs(pivot_lows, df):
 # Функция для проверки валидности сетапа
 def validate_setup(df, pairs):
     valid_pairs = []
-    for pair in pairs:
-        start_idx = df.index.get_loc(pair[0][0])
-        end_idx = df.index.get_loc(pair[1][0])
+    for i in range(len(pairs) - 1):
+        current_pair = pairs[i]
+        next_pair = pairs[i + 1]
 
-        # Проверяем, что вершина и тест не на одной свече и расстояние между ними >= 15
+        start_idx = df.index.get_loc(current_pair[0][0])
+        end_idx = df.index.get_loc(current_pair[1][0])
+
         if start_idx != end_idx and end_idx - start_idx >= 15:
-            peak_price = pair[0][1]
-            test_price = pair[1][1]
+            peak_price = current_pair[0][1]
+            test_price = current_pair[1][1]
 
-            # Дополнительные проверки
-            if test_price <= peak_price and all(df['High'][i] <= peak_price for i in range(start_idx + 1, end_idx)):
-                valid_pairs.append(pair)
+            if test_price <= peak_price and all(df['High'][j] <= peak_price for j in range(start_idx + 1, end_idx)):
+                # Дополнительное условие: проверяем, что тест текущей пары не является вершиной следующей пары
+                if current_pair[1][0] != next_pair[0][0]:
+                    valid_pairs.append(current_pair)
+
+    # Проверяем последнюю пару отдельно, так как она не может быть продолжением следующей
+    if len(pairs) > 0:
+        last_pair = pairs[-1]
+        start_idx = df.index.get_loc(last_pair[0][0])
+        end_idx = df.index.get_loc(last_pair[1][0])
+
+        if start_idx != end_idx and end_idx - start_idx >= 15:
+            peak_price = last_pair[0][1]
+            test_price = last_pair[1][1]
+
+            if test_price <= peak_price and all(df['High'][j] <= peak_price for j in range(start_idx + 1, end_idx)):
+                valid_pairs.append(last_pair)
 
     return valid_pairs
+
 
 def validate_low_setup(df, pairs):
     valid_pairs = []
-    for pair in pairs:
-        start_idx = df.index.get_loc(pair[0][0])
-        end_idx = df.index.get_loc(pair[1][0])
+    for i in range(len(pairs) - 1):
+        current_pair = pairs[i]
+        next_pair = pairs[i + 1]
 
-        # Проверяем, что дно и тест не на одной свече и расстояние между ними >= 15
+        start_idx = df.index.get_loc(current_pair[0][0])
+        end_idx = df.index.get_loc(current_pair[1][0])
+
         if start_idx != end_idx and end_idx - start_idx >= 15:
-            bottom_price = pair[0][1]
-            test_price = pair[1][1]
+            bottom_price = current_pair[0][1]
+            test_price = current_pair[1][1]
 
-            # Дополнительные проверки
-            if test_price >= bottom_price and all(df['Low'][i] >= bottom_price for i in range(start_idx + 1, end_idx)):
-                valid_pairs.append(pair)
+            if test_price >= bottom_price and all(df['Low'][j] >= bottom_price for j in range(start_idx + 1, end_idx)):
+                # Дополнительное условие: проверяем, что тест текущей пары не является дном следующей пары
+                if current_pair[1][0] != next_pair[0][0]:
+                    valid_pairs.append(current_pair)
+
+    # Проверяем последнюю пару отдельно, так как она не может быть продолжением следующей
+    if len(pairs) > 0:
+        last_pair = pairs[-1]
+        start_idx = df.index.get_loc(last_pair[0][0])
+        end_idx = df.index.get_loc(last_pair[1][0])
+
+        if start_idx != end_idx and end_idx - start_idx >= 15:
+            bottom_price = last_pair[0][1]
+            test_price = last_pair[1][1]
+
+            if test_price >= bottom_price and all(df['Low'][j] >= bottom_price for j in range(start_idx + 1, end_idx)):
+                valid_pairs.append(last_pair)
 
     return valid_pairs
+
 
 def find_breakout_candles(df, pairs, is_high=True, min_candles_after_test=5):
     breakout_candles = []
