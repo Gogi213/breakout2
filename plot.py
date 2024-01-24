@@ -77,10 +77,10 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
         breakout_candles = find_breakout_candles(df, pairs, is_high)
         for pair, breakout_idx in breakout_candles:
             peak_idx = pair[0][0]
-            peak_time = df.at[peak_idx, 'Formatted Open Time']
+            peak_time = df.index[peak_idx]
             if peak_time in setups_per_candle:
                 setup_numbers = setups_per_candle[peak_time]['numbers']
-                breakout_time = df.at[breakout_idx, 'Formatted Open Time']
+                breakout_time = df.index[breakout_idx]
                 if breakout_time not in setups_per_candle:
                     setups_per_candle[breakout_time] = {'numbers': setup_numbers, 'is_high': is_high,
                                                         'type': 'breakout'}
