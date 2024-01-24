@@ -50,7 +50,7 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
         for pair in pairs:
             if len(pair) == 2:  # Если в сетапе две свечи
                 peak_idx, test_idx = pair[0][0], pair[1][0]
-                peak_time, test_time = df.at[peak_idx, 'Formatted Open Time'], df.at[test_idx, 'Formatted Open Time']
+                peak_time, test_time = df.index[peak_idx], df.index[test_idx]
                 setups_per_candle[peak_time] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak'}
                 setups_per_candle[test_time] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'test'}
             elif len(pair) > 2:  # Если в сетапе более двух свечей
@@ -92,7 +92,7 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
     for idx, setup_info in setups_per_candle.items():
         price = df.at[idx, 'High'] if setup_info['is_high'] else df.at[idx, 'Low']
         if price is not None:
-            fig.add_annotation(x=df.at[idx, 'Formatted Open Time'], y=price,
+            fig.add_annotation(x=df.index[idx], y=price,
                                text=setup_info['numbers'][0],
                                showarrow=False,
                                yshift=10 if setup_info['is_high'] else -10,
