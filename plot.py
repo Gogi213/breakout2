@@ -3,6 +3,7 @@ import logging
 from dash import html, dcc
 from analysis import find_breakout_candles, emulate_position_tracking
 from plotly.subplots import make_subplots
+import json
 
 logging.basicConfig(level=logging.INFO)
 
@@ -24,6 +25,11 @@ def add_percentage_annotations(fig, df, pairs):
 import plotly.graph_objects as go
 
 def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pairs, symbol):
+
+    # Сохранение названий столбцов в файл JSON
+    with open('output.json', 'w') as file:
+        json.dump(list(df.columns), file)
+
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
                         vertical_spacing=0.03, subplot_titles=(symbol, 'nATR'),
                         row_heights=[0.7, 0.3])
@@ -36,27 +42,33 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
     fig.add_trace(go.Bar(x=df['Formatted Open Time'], y=df['nATR'], marker_color='blue'), row=2, col=1)
 
     # Словарь для хранения номеров сетапов по каждой свече
+    df.set_index('Formatted Open Time', inplace=True)
     setups_per_candle = {}
 
     setup_number = 1
     for pairs, is_high in [(valid_high_pairs, True), (valid_low_pairs, False)]:
         for pair in pairs:
-            # Определение типов свечей в паре
             if len(pair) == 2:  # Если в сетапе две свечи
                 peak_idx, test_idx = pair[0][0], pair[1][0]
-                setups_per_candle[peak_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak'}
-                setups_per_candle[test_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'test'}
+                peak_time, test_time = df.at[peak_idx, 'Formatted Open Time'], df.at[test_idx, 'Formatted Open Time']
+                setups_per_candle[peak_time] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak'}
+                setups_per_candle[test_time] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'test'}
             elif len(pair) > 2:  # Если в сетапе более двух свечей
                 peak_idx = pair[0][0]
                 breakout_idx = pair[-1][0]
-                setups_per_candle[peak_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak'}
-                setups_per_candle[breakout_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'breakout'}
+                peak_time = df.at[peak_idx, 'Formatted Open Time']
+                breakout_time = df.at[breakout_idx, 'Formatted Open Time']
+                setups_per_candle[peak_time] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak'}
+                setups_per_candle[breakout_time] = {'numbers': [str(setup_number)], 'is_high': is_high,
+                                                    'type': 'breakout'}
                 # Остальные свечи считаются тестами
                 for idx, _ in pair[1:-1]:
-                    if idx not in setups_per_candle:
-                        setups_per_candle[idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'test'}
+                    test_time = df.at[idx, 'Formatted Open Time']
+                    if test_time not in setups_per_candle:
+                        setups_per_candle[test_time] = {'numbers': [str(setup_number)], 'is_high': is_high,
+                                                        'type': 'test'}
                     else:
-                        setups_per_candle[idx]['numbers'].append(str(setup_number))
+                        setups_per_candle[test_time]['numbers'].append(str(setup_number))
 
             setup_number += 1
 
@@ -65,15 +77,18 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
         breakout_candles = find_breakout_candles(df, pairs, is_high)
         for pair, breakout_idx in breakout_candles:
             peak_idx = pair[0][0]
-            if peak_idx in setups_per_candle:
-                setup_numbers = setups_per_candle[peak_idx]['numbers']
-                if breakout_idx not in setups_per_candle:
-                    setups_per_candle[breakout_idx] = {'numbers': setup_numbers, 'is_high': is_high, 'type': 'breakout'}
+            peak_time = df.at[peak_idx, 'Formatted Open Time']
+            if peak_time in setups_per_candle:
+                setup_numbers = setups_per_candle[peak_time]['numbers']
+                breakout_time = df.at[breakout_idx, 'Formatted Open Time']
+                if breakout_time not in setups_per_candle:
+                    setups_per_candle[breakout_time] = {'numbers': setup_numbers, 'is_high': is_high,
+                                                        'type': 'breakout'}
                 else:
-                    setups_per_candle[breakout_idx]['numbers'].extend(setup_numbers)
-                    setups_per_candle[breakout_idx]['type'] = 'breakout'  # Явно указываем тип пробойной свечи
+                    setups_per_candle[breakout_time]['numbers'].extend(setup_numbers)
+                    setups_per_candle[breakout_time]['type'] = 'breakout'
 
-    # Создание аннотаций
+                    # Создание аннотаций
     for idx, setup_info in setups_per_candle.items():
         price = df.at[idx, 'High'] if setup_info['is_high'] else df.at[idx, 'Low']
         if price is not None:
