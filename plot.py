@@ -56,14 +56,14 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
             elif len(pair) > 2:  # Если в сетапе более двух свечей
                 peak_idx = pair[0][0]
                 breakout_idx = pair[-1][0]
-                peak_time = df.at[peak_idx, 'Formatted Open Time']
-                breakout_time = df.at[breakout_idx, 'Formatted Open Time']
+                peak_time = df.index[peak_idx]
+                breakout_time = df.index[breakout_idx]
                 setups_per_candle[peak_time] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak'}
                 setups_per_candle[breakout_time] = {'numbers': [str(setup_number)], 'is_high': is_high,
                                                     'type': 'breakout'}
                 # Остальные свечи считаются тестами
                 for idx, _ in pair[1:-1]:
-                    test_time = df.at[idx, 'Formatted Open Time']
+                    test_time = df.index[idx]
                     if test_time not in setups_per_candle:
                         setups_per_candle[test_time] = {'numbers': [str(setup_number)], 'is_high': is_high,
                                                         'type': 'test'}
