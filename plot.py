@@ -3,7 +3,6 @@ import logging
 from dash import html, dcc
 from analysis import find_breakout_candles, emulate_position_tracking
 from plotly.subplots import make_subplots
-import json
 
 logging.basicConfig(level=logging.INFO)
 
@@ -25,50 +24,41 @@ def add_percentage_annotations(fig, df, pairs):
 import plotly.graph_objects as go
 
 def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pairs, symbol):
-
-    # Сохранение названий столбцов в файл JSON
-    with open('output.json', 'w') as file:
-        json.dump(list(df.columns), file)
-
+    # Создание сетки графиков с 2 рядами
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
                         vertical_spacing=0.03, subplot_titles=(symbol, 'nATR'),
                         row_heights=[0.7, 0.3])
 
-    candlestick = go.Candlestick(x=df['Formatted Open Time'], open=df['Open'], high=df['High'],
+    # Добавление свечного графика
+    candlestick = go.Candlestick(x=df.index, open=df['Open'], high=df['High'],
                                  low=df['Low'], close=df['Close'])
     fig.add_trace(candlestick, row=1, col=1)
 
     # Добавление графика nATR
-    fig.add_trace(go.Bar(x=df['Formatted Open Time'], y=df['nATR'], marker_color='blue'), row=2, col=1)
+    fig.add_trace(go.Bar(x=df.index, y=df['nATR'], marker_color='blue'), row=2, col=1)
 
     # Словарь для хранения номеров сетапов по каждой свече
-    df.set_index('Formatted Open Time', inplace=True)
     setups_per_candle = {}
 
     setup_number = 1
     for pairs, is_high in [(valid_high_pairs, True), (valid_low_pairs, False)]:
         for pair in pairs:
+            # Определение типов свечей в паре
             if len(pair) == 2:  # Если в сетапе две свечи
                 peak_idx, test_idx = pair[0][0], pair[1][0]
-                peak_time, test_time = df.index[peak_idx], df.index[test_idx]
-                setups_per_candle[peak_time] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak'}
-                setups_per_candle[test_time] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'test'}
+                setups_per_candle[peak_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak'}
+                setups_per_candle[test_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'test'}
             elif len(pair) > 2:  # Если в сетапе более двух свечей
                 peak_idx = pair[0][0]
                 breakout_idx = pair[-1][0]
-                peak_time = df.index[peak_idx]
-                breakout_time = df.index[breakout_idx]
-                setups_per_candle[peak_time] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak'}
-                setups_per_candle[breakout_time] = {'numbers': [str(setup_number)], 'is_high': is_high,
-                                                    'type': 'breakout'}
+                setups_per_candle[peak_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak'}
+                setups_per_candle[breakout_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'breakout'}
                 # Остальные свечи считаются тестами
                 for idx, _ in pair[1:-1]:
-                    test_time = df.index[idx]
-                    if test_time not in setups_per_candle:
-                        setups_per_candle[test_time] = {'numbers': [str(setup_number)], 'is_high': is_high,
-                                                        'type': 'test'}
+                    if idx not in setups_per_candle:
+                        setups_per_candle[idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'test'}
                     else:
-                        setups_per_candle[test_time]['numbers'].append(str(setup_number))
+                        setups_per_candle[idx]['numbers'].append(str(setup_number))
 
             setup_number += 1
 
@@ -77,25 +67,20 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
         breakout_candles = find_breakout_candles(df, pairs, is_high)
         for pair, breakout_idx in breakout_candles:
             peak_idx = pair[0][0]
-            peak_time = df.index[peak_idx]
-            if peak_time in setups_per_candle:
-                setup_numbers = setups_per_candle[peak_time]['numbers']
-                breakout_time = df.index[breakout_idx]
-                if breakout_time not in setups_per_candle:
-                    setups_per_candle[breakout_time] = {'numbers': setup_numbers, 'is_high': is_high,
-                                                        'type': 'breakout'}
+            if peak_idx in setups_per_candle:
+                setup_numbers = setups_per_candle[peak_idx]['numbers']
+                if breakout_idx not in setups_per_candle:
+                    setups_per_candle[breakout_idx] = {'numbers': setup_numbers, 'is_high': is_high, 'type': 'breakout'}
                 else:
-                    setups_per_candle[breakout_time]['numbers'].extend(setup_numbers)
-                    setups_per_candle[breakout_time]['type'] = 'breakout'
+                    setups_per_candle[breakout_idx]['numbers'].extend(setup_numbers)
+                    setups_per_candle[breakout_idx]['type'] = 'breakout'  # Явно указываем тип пробойной свечи
 
-                    # Создание аннотаций
+    # Создание аннотаций
     for idx, setup_info in setups_per_candle.items():
-        if idx in df.index:
-            price = df.at[idx, 'High'] if setup_info['is_high'] else df.at[idx, 'Low']
-            if price is not None:
-                integer_idx = df.index.get_loc(idx)
-                fig.add_annotation(x=df.index[integer_idx], y=price,
-                               text=setup_info['numbers'][0],
+        price = df.at[idx, 'High'] if setup_info['is_high'] else df.at[idx, 'Low']
+        if price is not None:
+            fig.add_annotation(x=idx, y=price,
+                               text='/'.join(setup_info['numbers']),
                                showarrow=False,
                                yshift=10 if setup_info['is_high'] else -10,
                                row=1, col=1)
@@ -137,18 +122,17 @@ def create_breakout_statistics_table(df, breakout_candles, symbol):
     results = emulate_position_tracking(df, breakout_candles)
 
     # Сбор статистики
-    total_breakouts = len(results)
-    successful_breakouts = sum(1 for result in results if result['outcome'] == 'Successful')
-    unsuccessful_breakouts = total_breakouts - successful_breakouts
-    win_rate = successful_breakouts / total_breakouts if total_breakouts > 0 else 0
-    sum_nATR_successful = sum(result['profit_loss'] for result in results if result['outcome'] == 'Successful')
-    sum_nATR_unsuccessful = sum(result['profit_loss'] for result in results if result['outcome'] == 'Unsuccessful')
-    total_sum = sum_nATR_successful + sum_nATR_unsuccessful
+    total_trades = len(results)
+    successful_trades = sum(1 for result in results if result['outcome'] == 'Successful')
+    unsuccessful_trades = total_trades - successful_trades
+    win_rate = successful_trades / total_trades if total_trades > 0 else 0
+    total_profit = sum(result['profit_loss'] for result in results)
+    profit_factor = sum(result['profit_loss'] for result in results if result['profit_loss'] > 0) / abs(sum(result['profit_loss'] for result in results if result['profit_loss'] < 0)) if unsuccessful_trades > 0 else 'inf'
 
     # Создание таблицы
     fig = go.Figure(data=[go.Table(
-        header=dict(values=['Валютная пара', 'Количество пробоев', 'Успешные', 'Неуспешные', 'Винрейт', 'Сумма nATR успешных', 'Сумма nATR/2 неуспешных', 'Сумма двух предыдущих пунктов']),
-        cells=dict(values=[[symbol], [total_breakouts], [successful_breakouts], [unsuccessful_breakouts], [f"{win_rate:.2%}"], [sum_nATR_successful], [sum_nATR_unsuccessful], [total_sum]])
+        header=dict(values=['Валютная пара', 'Всего сделок', 'Успешных', 'Неуспешных', 'Winrate', 'Доход', 'Профит фактор']),
+        cells=dict(values=[[symbol], [total_trades], [successful_trades], [unsuccessful_trades], [f"{win_rate:.2%}"], [total_profit], [profit_factor]])
     )])
 
     return fig

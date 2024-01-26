@@ -179,38 +179,47 @@ def find_breakout_candles(df, pairs, is_high=True, min_candles_after_test=5):
 
     return breakout_candles
 
-def emulate_position_tracking(df, breakout_candles, nATR_column='nATR'):
+def emulate_position_tracking(df, breakout_candles, initial_deposit=100, leverage=6, limit_commission=0.0002, market_commission=0.00055):
     results = []
+    balance = initial_deposit
 
     for pair, breakout_idx in breakout_candles:
-        test_price = pair[1][1]  # Цена нижнего теста
-        nATR_value = df.at[breakout_idx, nATR_column]
+        test_price = pair[1][1]
+        nATR_value = df.at[breakout_idx, 'nATR']
 
         tp = test_price + (test_price * nATR_value * 1.5)
         sl = test_price - test_price * (nATR_value / 1.8)
 
+        # Расчет комиссии при входе
+        entry_commission = balance * limit_commission
+        balance -= entry_commission
+
         outcome = None
         profit_loss = 0
 
-        # Перебор свечей после пробоя для определения TP или SL
         for i in range(breakout_idx + 1, len(df)):
             high_price = df.at[i, 'High']
             low_price = df.at[i, 'Low']
 
             if high_price >= tp:
                 outcome = 'Successful'
-                profit_loss = nATR_value * 100
+                profit_loss = (tp - test_price) / test_price * balance * leverage
                 break
             elif low_price <= sl:
                 outcome = 'Unsuccessful'
-                profit_loss = (-nATR_value / 2) * 100
+                profit_loss = (test_price - sl) / test_price * balance * leverage * -1
                 break
+
+        # Расчет комиссии при выходе
+        exit_commission = (balance + profit_loss) * market_commission
+        balance += profit_loss - exit_commission
 
         results.append({
             'setup': pair,
             'breakout_idx': breakout_idx,
             'outcome': outcome,
-            'profit_loss': profit_loss
+            'profit_loss': profit_loss,
+            'balance_after_trade': balance
         })
 
     return results
