@@ -5,7 +5,7 @@ from cache_manager import CacheManager
 
 cache_manager = CacheManager()
 
-def get_top_futures_pairs(base_currency='USDT', volume_threshold=300000000):
+def get_top_futures_pairs(base_currency='USDT', volume_threshold=80000000):
     url = "https://fapi.binance.com/fapi/v1/ticker/24hr"
     response = requests.get(url)
     if response.status_code != 200:
@@ -31,7 +31,7 @@ def calculate_natr(df, period=7):
 
     return natr
 
-def get_historical_futures_data(symbol, interval='1h', limit=1500):
+def get_historical_futures_data(symbol, interval='15m', limit=1500):
     cached_data = cache_manager.load_cache(symbol, interval)
     if cached_data is not None:
         return cached_data

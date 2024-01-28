@@ -24,18 +24,16 @@ def add_percentage_annotations(fig, df, pairs):
 import plotly.graph_objects as go
 
 def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pairs, symbol):
-    # Создание сетки графиков с 2 рядами
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
                         vertical_spacing=0.03, subplot_titles=(symbol, 'nATR'),
                         row_heights=[0.7, 0.3])
 
-    # Добавление свечного графика
-    candlestick = go.Candlestick(x=df.index, open=df['Open'], high=df['High'],
+    candlestick = go.Candlestick(x=df['Formatted Open Time'], open=df['Open'], high=df['High'],
                                  low=df['Low'], close=df['Close'])
     fig.add_trace(candlestick, row=1, col=1)
 
     # Добавление графика nATR
-    fig.add_trace(go.Bar(x=df.index, y=df['nATR'], marker_color='blue'), row=2, col=1)
+    fig.add_trace(go.Bar(x=df['Formatted Open Time'], y=df['nATR'], marker_color='blue'), row=2, col=1)
 
     # Словарь для хранения номеров сетапов по каждой свече
     setups_per_candle = {}
@@ -79,8 +77,8 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
     for idx, setup_info in setups_per_candle.items():
         price = df.at[idx, 'High'] if setup_info['is_high'] else df.at[idx, 'Low']
         if price is not None:
-            fig.add_annotation(x=idx, y=price,
-                               text='/'.join(setup_info['numbers']),
+            fig.add_annotation(x=df.at[idx, 'Formatted Open Time'], y=price,
+                               text=setup_info['numbers'][0],
                                showarrow=False,
                                yshift=10 if setup_info['is_high'] else -10,
                                row=1, col=1)
