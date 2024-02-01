@@ -89,7 +89,7 @@ def validate_setup(df, pairs):
         start_idx = df.index.get_loc(current_pair[0][0])
         end_idx = df.index.get_loc(current_pair[1][0])
 
-        if start_idx != end_idx and end_idx - start_idx >= 15:
+        if start_idx != end_idx and end_idx - start_idx >= 30:
             peak_price = current_pair[0][1]
             test_price = current_pair[1][1]
 
@@ -104,7 +104,7 @@ def validate_setup(df, pairs):
         start_idx = df.index.get_loc(last_pair[0][0])
         end_idx = df.index.get_loc(last_pair[1][0])
 
-        if start_idx != end_idx and end_idx - start_idx >= 15:
+        if start_idx != end_idx and end_idx - start_idx >= 30:
             peak_price = last_pair[0][1]
             test_price = last_pair[1][1]
 
@@ -123,7 +123,7 @@ def validate_low_setup(df, pairs):
         start_idx = df.index.get_loc(current_pair[0][0])
         end_idx = df.index.get_loc(current_pair[1][0])
 
-        if start_idx != end_idx and end_idx - start_idx >= 15:
+        if start_idx != end_idx and end_idx - start_idx >= 30:
             bottom_price = current_pair[0][1]
             test_price = current_pair[1][1]
 
@@ -138,7 +138,7 @@ def validate_low_setup(df, pairs):
         start_idx = df.index.get_loc(last_pair[0][0])
         end_idx = df.index.get_loc(last_pair[1][0])
 
-        if start_idx != end_idx and end_idx - start_idx >= 15:
+        if start_idx != end_idx and end_idx - start_idx >= 30:
             bottom_price = last_pair[0][1]
             test_price = last_pair[1][1]
 
@@ -150,6 +150,8 @@ def validate_low_setup(df, pairs):
 
 def find_breakout_candles(df, pairs, is_high=True, min_candles_after_test=5):
     breakout_candles = []
+    # Добавляем словарь для отслеживания breakout по numbers
+    breakout_by_numbers = {}
 
     for pair in pairs:
         peak_idx, peak_price = pair[0]
@@ -169,15 +171,22 @@ def find_breakout_candles(df, pairs, is_high=True, min_candles_after_test=5):
             if is_high:
                 # Для верхних сетапов: пробой снизу вверх
                 if candle['Low'] <= test_price and candle['High'] >= test_price:
-                    breakout_candles.append((pair, i))
+                    # Проверяем, не принадлежит ли этот breakout уже другому numbers
+                    if i not in breakout_by_numbers or df.index.get_loc(pair[0][0]) < df.index.get_loc(breakout_by_numbers[i][0][0]):
+                        breakout_candles.append((pair, i))
+                        breakout_by_numbers[i] = pair
                     break
             else:
                 # Для нижних сетапов: пробой сверху вниз
                 if candle['High'] >= test_price and candle['Low'] <= test_price:
-                    breakout_candles.append((pair, i))
+                    # Аналогичная проверка для нижних сетапов
+                    if i not in breakout_by_numbers or df.index.get_loc(pair[0][0]) < df.index.get_loc(breakout_by_numbers[i][0][0]):
+                        breakout_candles.append((pair, i))
+                        breakout_by_numbers[i] = pair
                     break
 
     return breakout_candles
+
 
 def emulate_position_tracking(df, breakout_candles, initial_deposit=100, leverage=6, limit_commission=0.0002, market_commission=0.00055):
     results = []

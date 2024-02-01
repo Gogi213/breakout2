@@ -44,19 +44,32 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
             # Определение типов свечей в паре
             if len(pair) == 2:  # Если в сетапе две свечи
                 peak_idx, test_idx = pair[0][0], pair[1][0]
-                setups_per_candle[peak_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak'}
-                setups_per_candle[test_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'test'}
+                peak_time = df.at[peak_idx, 'Formatted Open Time']
+                test_time = df.at[test_idx, 'Formatted Open Time']
+                setups_per_candle[peak_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak',
+                                               'time': peak_time}
+                setups_per_candle[test_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'test',
+                                               'time': test_time}
             elif len(pair) > 2:  # Если в сетапе более двух свечей
                 peak_idx = pair[0][0]
                 breakout_idx = pair[-1][0]
-                setups_per_candle[peak_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak'}
-                setups_per_candle[breakout_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'breakout'}
+                peak_time = df.at[peak_idx, 'Formatted Open Time']
+                breakout_time = df.at[breakout_idx, 'Formatted Open Time']
+                setups_per_candle[peak_idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'peak',
+                                               'time': peak_time}
+                setups_per_candle[breakout_idx] = {'numbers': [str(setup_number)], 'is_high': is_high,
+                                                   'type': 'breakout', 'time': breakout_time}
                 # Остальные свечи считаются тестами
                 for idx, _ in pair[1:-1]:
+                    test_time = df.at[idx, 'Formatted Open Time']
                     if idx not in setups_per_candle:
-                        setups_per_candle[idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'test'}
+                        setups_per_candle[idx] = {'numbers': [str(setup_number)], 'is_high': is_high, 'type': 'test',
+                                                  'time': test_time}
                     else:
                         setups_per_candle[idx]['numbers'].append(str(setup_number))
+                        # Обновляем время, если оно не было установлено ранее
+                        if 'time' not in setups_per_candle[idx]:
+                            setups_per_candle[idx]['time'] = test_time
 
             setup_number += 1
 
@@ -67,11 +80,16 @@ def plot_support_resistance_with_annotations(df, valid_high_pairs, valid_low_pai
             peak_idx = pair[0][0]
             if peak_idx in setups_per_candle:
                 setup_numbers = setups_per_candle[peak_idx]['numbers']
+                breakout_time = df.at[breakout_idx, 'Formatted Open Time']
                 if breakout_idx not in setups_per_candle:
-                    setups_per_candle[breakout_idx] = {'numbers': setup_numbers, 'is_high': is_high, 'type': 'breakout'}
+                    setups_per_candle[breakout_idx] = {'numbers': setup_numbers, 'is_high': is_high, 'type': 'breakout',
+                                                       'time': breakout_time}
                 else:
                     setups_per_candle[breakout_idx]['numbers'].extend(setup_numbers)
                     setups_per_candle[breakout_idx]['type'] = 'breakout'  # Явно указываем тип пробойной свечи
+                    # Обновляем время, если оно не было установлено ранее
+                    if 'time' not in setups_per_candle[breakout_idx]:
+                        setups_per_candle[breakout_idx]['time'] = breakout_time
 
     # Создание аннотаций
     for idx, setup_info in setups_per_candle.items():
